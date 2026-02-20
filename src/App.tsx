@@ -120,9 +120,11 @@ function GameBoard() {
     getCurrentPlayer,
     getValidPlacements,
     isAIThinking,
+    restartGame,
   } = useGameStore();
 
   const [showTrade, setShowTrade] = useState(false);
+  const [pendingKnightCardIndex, setPendingKnightCardIndex] = useState<number | null>(null);
 
   if (!gameState) return null;
 
@@ -204,6 +206,16 @@ function GameBoard() {
 
   const handleHexClick = (coord: HexCoord) => {
     if (!currentPlayer) return;
+    if (pendingKnightCardIndex !== null) {
+      dispatch({
+        type: 'PLAY_KNIGHT',
+        playerId: currentPlayer.id,
+        payload: { cardIndex: pendingKnightCardIndex, hexCoord: coord },
+        timestamp: Date.now(),
+      });
+      setPendingKnightCardIndex(null);
+      return;
+    }
     if (gameState.turnPhase === 'robber') {
       dispatch({
         type: 'MOVE_ROBBER',
@@ -235,9 +247,10 @@ function GameBoard() {
       timestamp: Date.now(),
     });
     setSelectedAction(null);
+    setPendingKnightCardIndex(null);
   };
 
-  const validHexes: HexCoord[] = gameState.turnPhase === 'robber'
+  const validHexes: HexCoord[] = (gameState.turnPhase === 'robber' || pendingKnightCardIndex !== null)
     ? gameState.board.graph.hexes
         .map(h => h.coord)
         .filter(c => !(c.q === gameState.board.robberHex.q && c.r === gameState.board.robberHex.r))
@@ -253,6 +266,7 @@ function GameBoard() {
   const phaseLabel =
     gameState.phase === 'setup'
       ? `Setup: ${setupPhaseLabel}`
+      : pendingKnightCardIndex !== null ? '⚔️ Select a hex for Knight'
       : gameState.turnPhase === 'preRoll' ? 'Roll dice to start your turn'
       : gameState.turnPhase === 'robber' ? '🦹 Move the Robber'
       : gameState.turnPhase === 'discarding' ? '⚠️ Players must discard'
@@ -346,13 +360,28 @@ function GameBoard() {
           validHexes={validHexes}
           onVertexClick={handleVertexClick}
           onEdgeClick={handleEdgeClick}
-          onHexClick={gameState.turnPhase === 'robber' ? handleHexClick : undefined}
+          onHexClick={gameState.turnPhase === 'robber' || pendingKnightCardIndex !== null ? handleHexClick : undefined}
           playerColors={playerColors}
         />
 
         {gameState.phase === 'finished' && gameState.winner && (
-          <div style={{ background: '#ffd700', color: '#1a1a1a', padding: '12px 24px', borderRadius: 12, marginTop: 12, fontWeight: 'bold', fontSize: 18 }}>
-            🏆 {gameState.players.find(p => p.id === gameState.winner)?.name ?? 'Unknown'} wins!
+          <div style={{ background: '#ffd700', color: '#1a1a1a', padding: '12px 24px', borderRadius: 12, marginTop: 12, fontWeight: 'bold', fontSize: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>🏆 {gameState.players.find(p => p.id === gameState.winner)?.name ?? 'Unknown'} wins!</span>
+            <button
+              onClick={restartGame}
+              style={{
+                background: '#1a1a1a',
+                color: '#ffd700',
+                border: 'none',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 13,
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              New Game
+            </button>
           </div>
         )}
       </div>
@@ -403,6 +432,17 @@ function GameBoard() {
                 </button>
               </div>
             )}
+            {pendingKnightCardIndex !== null && (
+              <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 8, padding: '4px 8px', background: 'rgba(239,68,68,0.1)', borderRadius: 4 }}>
+                Click a hex to move the robber (Knight)
+                <button
+                  onClick={() => setPendingKnightCardIndex(null)}
+                  style={{ marginLeft: 6, background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 12 }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {gameState.turnPhase === 'postRoll' && (
               <>
@@ -443,6 +483,11 @@ function GameBoard() {
                 onPlayCard={(cardIndex, payload) => {
                   const card = currentPlayer.developmentCards[cardIndex];
                   if (!card) return;
+                  if (card.type === 'knight') {
+                    setPendingKnightCardIndex(cardIndex);
+                    setSelectedAction(null);
+                    return;
+                  }
                   const actionMap: Record<string, string> = {
                     knight: 'PLAY_KNIGHT',
                     roadBuilding: 'PLAY_ROAD_BUILDING',

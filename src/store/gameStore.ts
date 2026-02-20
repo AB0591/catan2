@@ -24,8 +24,11 @@ type GameStore = {
   selectedAction: 'settlement' | 'road' | 'city' | null;
   lastPlacedSettlementVertexId: VertexId | null;
   aiPlayerIds: string[];
+  lastPlayerNames: string[];
+  lastAiPlayerIds: string[];
   isAIThinking: boolean;
   startGame: (playerNames: string[], aiPlayerIds?: string[]) => void;
+  restartGame: () => void;
   dispatch: (action: GameAction) => void;
   setSelectedAction: (action: 'settlement' | 'road' | 'city' | null) => void;
   setLastPlacedSettlement: (vertexId: VertexId | null) => void;
@@ -38,6 +41,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedAction: null,
   lastPlacedSettlementVertexId: null,
   aiPlayerIds: [],
+  lastPlayerNames: [],
+  lastAiPlayerIds: [],
   isAIThinking: false,
 
   startGame: (playerNames: string[], aiPlayerIds: string[] = []) => {
@@ -48,8 +53,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }));
     const seed = Math.floor(Math.random() * 2147483647);
     const gameState = createInitialGameState(configs, seed);
-    set({ gameState, aiPlayerIds, lastPlacedSettlementVertexId: null, selectedAction: null, isAIThinking: false });
+    set({
+      gameState,
+      aiPlayerIds,
+      lastPlayerNames: [...playerNames],
+      lastAiPlayerIds: [...aiPlayerIds],
+      lastPlacedSettlementVertexId: null,
+      selectedAction: null,
+      isAIThinking: false,
+    });
     // If first player is AI, start AI loop
+    setTimeout(() => runAITurnsAsync(get, set), 0);
+  },
+
+  restartGame: () => {
+    const { lastPlayerNames, lastAiPlayerIds } = get();
+    if (lastPlayerNames.length === 0) return;
+    const configs: PlayerConfig[] = lastPlayerNames.map((name, i) => ({
+      id: `player_${i}`,
+      name,
+      color: (['red', 'blue', 'orange', 'white'] as const)[i % 4],
+    }));
+    const seed = Math.floor(Math.random() * 2147483647);
+    const gameState = createInitialGameState(configs, seed);
+    set({
+      gameState,
+      aiPlayerIds: [...lastAiPlayerIds],
+      lastPlacedSettlementVertexId: null,
+      selectedAction: null,
+      isAIThinking: false,
+    });
     setTimeout(() => runAITurnsAsync(get, set), 0);
   },
 

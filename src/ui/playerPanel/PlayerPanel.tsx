@@ -1,26 +1,11 @@
 import React from 'react';
 import type { PlayerState } from '../../state/playerState';
+import { RESOURCE_ICONS, RESOURCE_NAMES } from '../resourceMeta';
 
 export type PlayerPanelProps = {
   player: PlayerState;
   isCurrentPlayer: boolean;
   isLocalPlayer: boolean;
-};
-
-const RESOURCE_LABELS: Record<string, string> = {
-  wood: '🌲',
-  brick: '🧱',
-  sheep: '🐑',
-  wheat: '🌾',
-  ore: '⛰️',
-};
-
-const RESOURCE_NAMES: Record<string, string> = {
-  wood: 'Wood (Lumber)',
-  brick: 'Brick (Grain)',
-  sheep: 'Sheep (Wool)',
-  wheat: 'Wheat (Grain)',
-  ore: 'Ore',
 };
 
 export const PlayerPanel: React.FC<PlayerPanelProps> = ({
@@ -69,7 +54,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         {Object.entries(player.resources).map(([res, count]) => (
           <div
             key={res}
-            title={RESOURCE_NAMES[res] ?? res}
+            title={RESOURCE_NAMES[res as keyof typeof RESOURCE_NAMES] ?? res}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -81,7 +66,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
               opacity: count > 0 ? 1 : 0.4,
             }}
           >
-            <span style={{ fontSize: 18 }}>{RESOURCE_LABELS[res]}</span>
+            <span style={{ fontSize: 18 }}>{RESOURCE_ICONS[res as keyof typeof RESOURCE_ICONS]}</span>
             <span style={{ fontSize: 12, fontWeight: 'bold', color: count > 0 ? '#fff' : '#888' }}>{count}</span>
           </div>
         ))}

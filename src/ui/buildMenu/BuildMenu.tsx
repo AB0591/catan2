@@ -1,6 +1,7 @@
 import React from 'react';
 import type { PlayerState } from '../../state/playerState';
 import type { TurnPhase } from '../../state/gameState';
+import { formatResourceCostTooltip } from '../resourceMeta';
 
 export type BuildMenuProps = {
   player: PlayerState;
@@ -55,6 +56,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       <button
         onClick={onBuildSettlement}
         disabled={!canSettlement}
+        title={formatResourceCostTooltip(COSTS.settlement)}
         style={{ ...BTN_STYLE, background: canSettlement ? '#2d6a2d' : '#333', color: canSettlement ? '#fff' : '#666' }}
       >
         🏠 Settlement
@@ -63,6 +65,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       <button
         onClick={onBuildRoad}
         disabled={!canRoad}
+        title={formatResourceCostTooltip(COSTS.road)}
         style={{ ...BTN_STYLE, background: canRoad ? '#78350f' : '#333', color: canRoad ? '#fff' : '#666' }}
       >
         🛣️ Road
@@ -71,6 +74,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       <button
         onClick={onBuildCity}
         disabled={!canCity}
+        title={formatResourceCostTooltip(COSTS.city)}
         style={{ ...BTN_STYLE, background: canCity ? '#1e40af' : '#333', color: canCity ? '#fff' : '#666' }}
       >
         🏙️ City
@@ -79,6 +83,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       <button
         onClick={onBuyDevCard}
         disabled={!canDev}
+        title={formatResourceCostTooltip(COSTS.devCard)}
         style={{ ...BTN_STYLE, background: canDev ? '#7e22ce' : '#333', color: canDev ? '#fff' : '#666' }}
       >
         🃏 Dev Card

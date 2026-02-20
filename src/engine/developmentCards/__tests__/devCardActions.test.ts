@@ -102,6 +102,41 @@ describe('PLAY_KNIGHT', () => {
     expect(newState.board.robberHex).toEqual(state.board.robberHex);
     expect(newState.players[0].knightsPlayed).toBe(0);
   });
+
+  it('keeps stealing phase active when robber lands next to an opponent', () => {
+    const base = playingState(make2PlayerState());
+    const stateWithCard = giveCard(base, 'p1', 'knight', 0);
+
+    const targetHex = stateWithCard.board.graph.hexes.find(
+      h => h.coord.q !== stateWithCard.board.robberHex.q || h.coord.r !== stateWithCard.board.robberHex.r
+    )!;
+    const adjacentVertexId = Array.from(stateWithCard.board.graph.vertices.entries()).find(([, vertex]) =>
+      vertex.adjacentHexes.some(h => h.q === targetHex.coord.q && h.r === targetHex.coord.r)
+    )?.[0];
+    expect(adjacentVertexId).toBeTruthy();
+
+    const state = {
+      ...stateWithCard,
+      board: {
+        ...stateWithCard.board,
+        buildings: {
+          ...stateWithCard.board.buildings,
+          [adjacentVertexId!]: { type: 'settlement' as const, playerId: 'p2' },
+        },
+      },
+    };
+
+    const newState = handlePlayKnight(state, makeAction('PLAY_KNIGHT', 'p1', { hexCoord: targetHex.coord }));
+    expect(newState.turnPhase).toBe('stealing');
+  });
+
+  it('does nothing when knight payload is missing hexCoord', () => {
+    const base = playingState(make2PlayerState());
+    const state = giveCard(base, 'p1', 'knight', 0);
+
+    const newState = handlePlayKnight(state, makeAction('PLAY_KNIGHT', 'p1', {}));
+    expect(newState).toEqual(state);
+  });
 });
 
 describe('PLAY_ROAD_BUILDING', () => {

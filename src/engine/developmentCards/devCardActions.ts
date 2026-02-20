@@ -63,6 +63,12 @@ function checkLargestArmy(state: GameState): GameState {
 export function handlePlayKnight(state: GameState, action: GameAction): GameState {
   if (hasPlayedDevCard(state, action.playerId)) return state;
 
+  const { hexCoord, targetPlayerId } = action.payload as {
+    hexCoord?: HexCoord;
+    targetPlayerId?: string;
+  };
+  if (!hexCoord) return state;
+
   const playerIndex = state.players.findIndex(p => p.id === action.playerId);
   if (playerIndex === -1) return state;
 
@@ -83,11 +89,6 @@ export function handlePlayKnight(state: GameState, action: GameAction): GameStat
   newState = checkLargestArmy(newState);
 
   // Move robber (treat as if in robber phase temporarily)
-  const { hexCoord, targetPlayerId } = action.payload as {
-    hexCoord: HexCoord;
-    targetPlayerId?: string;
-  };
-
   const savedPhase = newState.turnPhase;
   newState = { ...newState, turnPhase: 'robber' };
   newState = handleMoveRobber(newState, { ...action, payload: { hexCoord } });
@@ -95,8 +96,8 @@ export function handlePlayKnight(state: GameState, action: GameAction): GameStat
   // If a target is given and we're now in stealing phase, steal
   if (targetPlayerId && newState.turnPhase === 'stealing') {
     newState = handleStealResource(newState, { ...action, payload: { targetPlayerId } });
-  } else if (newState.turnPhase === 'stealing') {
-    // No target given, just go back to previous phase
+  } else if (newState.turnPhase === 'robber') {
+    // Invalid robber move should not strand turn in robber phase.
     newState = { ...newState, turnPhase: savedPhase };
   }
 
