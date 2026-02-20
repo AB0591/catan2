@@ -8,8 +8,9 @@ import type { PlayerConfig } from '../state/gameStateFactory';
 import {
   getValidSettlementPlacements,
   getValidRoadPlacements,
+  canPlaceCity,
 } from '../engine/rules/placementRules';
-import { canPlaceCity } from '../engine/rules/placementRules';
+import { runAITurn } from '../engine/ai/aiPlayer';
 
 type GameStore = {
   gameState: GameState | null;
@@ -41,9 +42,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   dispatch: (action: GameAction) => {
-    const { gameState } = get();
+    const { gameState, aiPlayerIds } = get();
     if (!gameState) return;
-    const newState = dispatchAction(action, gameState);
+    let newState = dispatchAction(action, gameState);
+
+    // Auto-run AI turns after each human action
+    if (aiPlayerIds.length > 0) {
+      newState = runAITurnsIfNeeded(newState, aiPlayerIds);
+    }
+
     set({ gameState: newState });
   },
 
@@ -67,18 +74,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const isSetup = gameState.phase === 'setup';
 
     if (isSetup) {
-      // During setup, alternate between settlement and road placement
-      // If there are no buildings on the current player, they need to place a settlement
-      // Track what's needed via setupOrderIndex parity (even = settlement, odd = road)
-      const setupStep = gameState.setupOrderIndex % 2;
-      if (setupStep === 0) {
-        // Place settlement
+      // Determine if player needs settlement or road
+      // settlements_placed > roads_placed means player needs a road next
+      const settlementsPlaced = 5 - player.settlements;
+      const roadsPlaced = 15 - player.roads;
+      const needsRoad = settlementsPlaced > roadsPlaced;
+
+      if (!needsRoad) {
         return {
           vertices: getValidSettlementPlacements(gameState.board, player.id, true),
           edges: [],
         };
       } else {
-        // Place road adjacent to last settlement
         return {
           vertices: [],
           edges: getValidRoadPlacements(
@@ -118,3 +125,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return { vertices: [], edges: [] };
   },
 }));
+
+/** Run AI turns for any AI players until it's a human player's turn or game is finished. */
+function runAITurnsIfNeeded(state: GameState, aiPlayerIds: string[]): GameState {
+  let currentState = state;
+  let maxCycles = 200; // safety limit
+
+  while (maxCycles-- > 0) {
+    if (currentState.phase === 'finished') break;
+
+    const currentPlayer = currentState.players[currentState.currentPlayerIndex];
+    if (!currentPlayer) break;
+
+    // Handle discarding for AI players
+    if (currentState.turnPhase === 'discarding') {
+      const nextDiscardAI = currentState.pendingDiscards.find(id => aiPlayerIds.includes(id));
+      if (nextDiscardAI) {
+        currentState = runAITurn(currentState, nextDiscardAI, (action, s) => dispatchAction(action, s));
+        continue;
+      }
+      break; // human player needs to discard
+    }
+
+    if (!aiPlayerIds.includes(currentPlayer.id)) break; // human's turn
+
+    currentState = runAITurn(currentState, currentPlayer.id, (action, s) => dispatchAction(action, s));
+  }
+
+  return currentState;
+}

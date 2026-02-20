@@ -135,8 +135,10 @@ function GameBoard() {
     if (!currentPlayer) return;
 
     if (gameState.phase === 'setup') {
-      const setupStep = gameState.setupOrderIndex % 2;
-      if (setupStep === 0) {
+      const settlementsPlaced = 5 - currentPlayer.settlements;
+      const roadsPlaced = 15 - currentPlayer.roads;
+      const needsRoad = settlementsPlaced > roadsPlaced;
+      if (!needsRoad) {
         dispatch({
           type: 'PLACE_SETTLEMENT',
           playerId: currentPlayer.id,
@@ -171,8 +173,10 @@ function GameBoard() {
     if (!currentPlayer) return;
 
     if (gameState.phase === 'setup') {
-      const setupStep = gameState.setupOrderIndex % 2;
-      if (setupStep === 1) {
+      const settlementsPlaced = 5 - currentPlayer.settlements;
+      const roadsPlaced = 15 - currentPlayer.roads;
+      const needsRoad = settlementsPlaced > roadsPlaced;
+      if (needsRoad) {
         dispatch({
           type: 'PLACE_ROAD',
           playerId: currentPlayer.id,
@@ -236,9 +240,16 @@ function GameBoard() {
         .filter(c => !(c.q === gameState.board.robberHex.q && c.r === gameState.board.robberHex.r))
     : [];
 
+  const setupPhaseLabel = (() => {
+    if (gameState.phase !== 'setup' || !currentPlayer) return '';
+    const settlementsPlaced = 5 - currentPlayer.settlements;
+    const roadsPlaced = 15 - currentPlayer.roads;
+    return settlementsPlaced > roadsPlaced ? 'Place Road' : 'Place Settlement';
+  })();
+
   const phaseLabel =
     gameState.phase === 'setup'
-      ? `Setup: ${gameState.setupOrderIndex % 2 === 0 ? 'Place Settlement' : 'Place Road'}`
+      ? `Setup: ${setupPhaseLabel}`
       : gameState.turnPhase === 'preRoll' ? 'Roll dice to start your turn'
       : gameState.turnPhase === 'robber' ? '🦹 Move the Robber'
       : gameState.turnPhase === 'discarding' ? '⚠️ Players must discard'
