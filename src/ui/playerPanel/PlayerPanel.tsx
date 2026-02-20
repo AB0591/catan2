@@ -15,6 +15,14 @@ const RESOURCE_LABELS: Record<string, string> = {
   ore: '⛰️',
 };
 
+const RESOURCE_NAMES: Record<string, string> = {
+  wood: 'Wood (Lumber)',
+  brick: 'Brick (Grain)',
+  sheep: 'Sheep (Wool)',
+  wheat: 'Wheat (Grain)',
+  ore: 'Ore',
+};
+
 export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   player,
   isCurrentPlayer,
@@ -61,6 +69,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         {Object.entries(player.resources).map(([res, count]) => (
           <div
             key={res}
+            title={RESOURCE_NAMES[res] ?? res}
             style={{
               display: 'flex',
               flexDirection: 'column',

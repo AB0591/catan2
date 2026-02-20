@@ -276,65 +276,68 @@ function GameBoard() {
       </div>
 
       {/* Center: board */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 16px', borderRadius: 20, marginBottom: 8, fontSize: 13, color: '#ffd700' }}>
-          {currentPlayer && <span style={{ color: playerColors[currentPlayer.id] }}>{currentPlayer.name}</span>}
-          {' — '}{phaseLabel}
-        </div>
-
-        {/* AI message */}
-        {gameState.aiMessage && (
-          <div style={{
-            background: 'rgba(59,130,246,0.15)', border: '1px solid #3b82f6',
-            borderRadius: 8, padding: '6px 16px', marginBottom: 8,
-            fontSize: 13, color: '#93c5fd', maxWidth: 420, textAlign: 'center',
-          }}>
-            🤖 {gameState.aiMessage}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+        {/* Fixed-height notification area — reserved space so the board never moves */}
+        <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%', paddingBottom: 4 }}>
+          <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 16px', borderRadius: 20, marginBottom: 6, fontSize: 13, color: '#ffd700' }}>
+            {currentPlayer && <span style={{ color: playerColors[currentPlayer.id] }}>{currentPlayer.name}</span>}
+            {' — '}{phaseLabel}
           </div>
-        )}
 
-        {/* Resource distribution after roll */}
-        {gameState.lastDistribution && gameState.turnPhase === 'postRoll' &&
-          Object.keys(gameState.lastDistribution).length > 0 && (
-          <div style={{
-            background: 'rgba(34,197,94,0.1)', border: '1px solid #22c55e',
-            borderRadius: 8, padding: '8px 16px', marginBottom: 8,
-            fontSize: 12, color: '#86efac', maxWidth: 420,
-          }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 4 }}>📦 Resources produced:</div>
-            {Object.entries(gameState.lastDistribution).map(([pid, gains]) => {
-              const player = gameState.players.find(p => p.id === pid);
-              if (!player || !gains) return null;
-              const gainStr = Object.entries(gains)
-                .filter(([, v]) => (v ?? 0) > 0)
-                .map(([r, v]) => `${v} ${r}`)
-                .join(', ');
-              if (!gainStr) return null;
-              return (
-                <div key={pid}>
-                  <span style={{ color: playerColors[pid] ?? '#fff' }}>{player.name}</span>: {gainStr}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Steal outcome */}
-        {gameState.lastSteal && gameState.turnPhase === 'postRoll' && (() => {
-          const thief = gameState.players.find(p => p.id === gameState.lastSteal!.thiefId);
-          const victim = gameState.players.find(p => p.id === gameState.lastSteal!.victimId);
-          return (
+          {/* AI message */}
+          {gameState.aiMessage && (
             <div style={{
-              background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444',
-              borderRadius: 8, padding: '6px 16px', marginBottom: 8,
-              fontSize: 12, color: '#fca5a5', maxWidth: 420,
+              background: 'rgba(59,130,246,0.15)', border: '1px solid #3b82f6',
+              borderRadius: 8, padding: '4px 14px',
+              fontSize: 12, color: '#93c5fd', maxWidth: 420, textAlign: 'center',
             }}>
-              🦹 <span style={{ color: playerColors[thief?.id ?? ''] ?? '#fff' }}>{thief?.name}</span>
-              {' '}stole 1 <strong>{gameState.lastSteal!.resource}</strong> from{' '}
-              <span style={{ color: playerColors[victim?.id ?? ''] ?? '#fff' }}>{victim?.name}</span>
+              🤖 {gameState.aiMessage}
             </div>
-          );
-        })()}
+          )}
+
+          {/* Resource distribution after roll */}
+          {!gameState.aiMessage && gameState.lastDistribution && gameState.turnPhase === 'postRoll' &&
+            Object.keys(gameState.lastDistribution).length > 0 && (
+            <div style={{
+              background: 'rgba(34,197,94,0.1)', border: '1px solid #22c55e',
+              borderRadius: 8, padding: '4px 14px',
+              fontSize: 12, color: '#86efac', maxWidth: 420,
+            }}>
+              <span style={{ fontWeight: 'bold' }}>📦 </span>
+              {Object.entries(gameState.lastDistribution).map(([pid, gains]) => {
+                const player = gameState.players.find(p => p.id === pid);
+                if (!player || !gains) return null;
+                const gainStr = Object.entries(gains)
+                  .filter(([, v]) => (v ?? 0) > 0)
+                  .map(([r, v]) => `${v} ${r}`)
+                  .join(', ');
+                if (!gainStr) return null;
+                return (
+                  <span key={pid}>
+                    <span style={{ color: playerColors[pid] ?? '#fff' }}>{player.name}</span>{': '}{gainStr}{' '}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Steal outcome */}
+          {!gameState.aiMessage && gameState.lastSteal && gameState.turnPhase === 'postRoll' && (() => {
+            const thief = gameState.players.find(p => p.id === gameState.lastSteal!.thiefId);
+            const victim = gameState.players.find(p => p.id === gameState.lastSteal!.victimId);
+            return (
+              <div style={{
+                background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444',
+                borderRadius: 8, padding: '4px 14px',
+                fontSize: 12, color: '#fca5a5', maxWidth: 420,
+              }}>
+                🦹 <span style={{ color: playerColors[thief?.id ?? ''] ?? '#fff' }}>{thief?.name}</span>
+                {' '}stole 1 <strong>{gameState.lastSteal!.resource}</strong> from{' '}
+                <span style={{ color: playerColors[victim?.id ?? ''] ?? '#fff' }}>{victim?.name}</span>
+              </div>
+            );
+          })()}
+        </div>
 
         <HexBoard
           boardState={gameState.board}
