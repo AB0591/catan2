@@ -19,7 +19,7 @@ function makeState(): GameState {
   return createInitialGameState([
     { id: 'p1', name: 'Alice', color: 'red' },
     { id: 'p2', name: 'Bob', color: 'blue' },
-  ]);
+  ], 42);
 }
 
 function makeAction(

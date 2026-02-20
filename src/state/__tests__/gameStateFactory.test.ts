@@ -14,23 +14,23 @@ const fourPlayerConfigs = [
 
 describe('createInitialGameState', () => {
   it('creates correct player count for 3 players', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.players).toHaveLength(3);
   });
 
   it('starts with phase setup and turnPhase setupPlacement', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.phase).toBe('setup');
     expect(state.turnPhase).toBe('setupPlacement');
   });
 
   it('dev card deck has exactly 25 cards', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.devCardDeck).toHaveLength(25);
   });
 
   it('dev card deck contains correct counts of each type', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     const counts = state.devCardDeck.reduce<Record<string, number>>((acc, card) => {
       acc[card] = (acc[card] ?? 0) + 1;
       return acc;
@@ -43,32 +43,32 @@ describe('createInitialGameState', () => {
   });
 
   it('setup player order for 4 players is length 8 (snake: 0,1,2,3,3,2,1,0)', () => {
-    const state = createInitialGameState(fourPlayerConfigs);
+    const state = createInitialGameState(fourPlayerConfigs, 42);
     expect(state.setupPlayerOrder).toHaveLength(8);
     expect(state.setupPlayerOrder).toEqual([0, 1, 2, 3, 3, 2, 1, 0]);
   });
 
   it('setup player order for 3 players is length 6', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.setupPlayerOrder).toHaveLength(6);
     expect(state.setupPlayerOrder).toEqual([0, 1, 2, 2, 1, 0]);
   });
 
   it('winner is null on new game', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.winner).toBeNull();
   });
 });
 
 describe('serializeGameState', () => {
   it('produces valid JSON', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     const json = serializeGameState(state);
     expect(() => JSON.parse(json)).not.toThrow();
   });
 
   it('serialized state represents Maps as objects', () => {
-    const state = createInitialGameState(threePlayerConfigs);
+    const state = createInitialGameState(threePlayerConfigs, 42);
     const parsed = JSON.parse(serializeGameState(state));
     expect(parsed.board.graph.vertices).toBeDefined();
     expect(typeof parsed.board.graph.vertices).toBe('object');

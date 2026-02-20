@@ -17,7 +17,7 @@ function make2PlayerState() {
   return createInitialGameState([
     { id: 'p1', name: 'Player 1', color: 'red' },
     { id: 'p2', name: 'Player 2', color: 'blue' },
-  ]);
+  ], 42);
 }
 
 /** Get a state with p1 in postRoll, with a settlement at vertexId and an adjacent road */

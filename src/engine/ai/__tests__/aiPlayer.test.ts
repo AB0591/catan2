@@ -8,14 +8,14 @@ function makeSetupState(): GameState {
   return createInitialGameState([
     { id: 'p1', name: 'AI', color: 'red' },
     { id: 'p2', name: 'Human', color: 'blue' },
-  ]);
+  ], 42);
 }
 
 function makePlayingState(): GameState {
   const base = createInitialGameState([
     { id: 'p1', name: 'AI', color: 'red' },
     { id: 'p2', name: 'Human', color: 'blue' },
-  ]);
+  ], 42);
   return { ...base, phase: 'playing', turnPhase: 'preRoll', currentPlayerIndex: 0 };
 }
 

@@ -46,7 +46,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       name,
       color: (['red', 'blue', 'orange', 'white'] as const)[i % 4],
     }));
-    const gameState = createInitialGameState(configs);
+    const seed = Math.floor(Math.random() * 2147483647);
+    const gameState = createInitialGameState(configs, seed);
     set({ gameState, aiPlayerIds, lastPlacedSettlementVertexId: null, selectedAction: null, isAIThinking: false });
     // If first player is AI, start AI loop
     setTimeout(() => runAITurnsAsync(get, set), 0);

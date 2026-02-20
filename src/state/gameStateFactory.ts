@@ -42,7 +42,7 @@ export type PlayerConfig = {
 
 export function createInitialGameState(
   playerConfigs: PlayerConfig[],
-  seed: number = 42
+  seed: number
 ): GameState {
   const rng = mulberry32(seed);
   const board = createBoard(seed);

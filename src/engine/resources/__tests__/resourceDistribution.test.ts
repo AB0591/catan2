@@ -13,7 +13,7 @@ function make2PlayerState() {
   return createInitialGameState([
     { id: 'p1', name: 'Player 1', color: 'red' },
     { id: 'p2', name: 'Player 2', color: 'blue' },
-  ]);
+  ], 42);
 }
 
 /** Find a hex with a given numberToken and return a vertex adjacent to it */

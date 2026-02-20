@@ -12,7 +12,7 @@ function makeState(overrides?: Partial<GameState>): GameState {
   const state = createInitialGameState([
     { id: 'p1', name: 'Alice', color: 'red' },
     { id: 'p2', name: 'Bob', color: 'blue' },
-  ]);
+  ], 42);
   return { ...state, phase: 'playing', turnPhase: 'postRoll', ...overrides };
 }
 

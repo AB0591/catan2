@@ -12,7 +12,7 @@ function getDefaultBoard(): BoardState {
   const state = createInitialGameState([
     { id: 'p1', name: 'Player 1', color: 'red' },
     { id: 'p2', name: 'Player 2', color: 'blue' },
-  ]);
+  ], 42);
   return state.board;
 }
 
