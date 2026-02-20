@@ -75,6 +75,9 @@ export function createInitialGameState(
     largestArmySize: 0,
     pendingDiscards: [],
     currentTurn: 0,
+    lastDistribution: null,
+    lastSteal: null,
+    aiMessage: null,
   };
 }
 

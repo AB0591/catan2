@@ -1,6 +1,14 @@
 import type { PlayerState } from './playerState';
 import type { BoardState } from './boardState';
-import type { ResourceType, DevelopmentCardType } from './playerState';
+import type { ResourceType, DevelopmentCardType, ResourceCards } from './playerState';
+
+export type ResourceGains = Record<string, Partial<ResourceCards>>;
+
+export type StealEvent = {
+  thiefId: string;
+  victimId: string;
+  resource: ResourceType;
+};
 
 export type GamePhase =
   | 'setup'           // initial placement
@@ -68,6 +76,9 @@ export type GameState = {
   largestArmySize: number;
   pendingDiscards: string[];  // playerIds who still need to discard (after rolling 7)
   currentTurn: number;        // incremented on END_TURN
+  lastDistribution: ResourceGains | null;
+  lastSteal: StealEvent | null;
+  aiMessage: string | null;
 };
 
 // Suppress unused import warning — ResourceType is re-exported via index

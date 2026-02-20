@@ -64,6 +64,9 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
         currentPlayerIndex: nextIndex,
         turnPhase: 'preRoll',
         lastDiceRoll: null,
+        lastDistribution: null,
+        lastSteal: null,
+        aiMessage: null,
         currentTurn: state.currentTurn + 1,
       };
       break;

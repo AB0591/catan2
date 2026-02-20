@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/gameState';
 import type { PlayerState, ResourceCards, ResourceType } from '../../state/playerState';
+import type { ResourceGains } from '../../state/gameState';
 
 export function addResources(player: PlayerState, resources: Partial<ResourceCards>): PlayerState {
   const updated: ResourceCards = { ...player.resources };
@@ -37,7 +38,7 @@ export function totalResources(player: PlayerState): number {
 }
 
 export function distributeResources(state: GameState, diceTotal: number): GameState {
-  if (diceTotal === 7) return state;
+  if (diceTotal === 7) return { ...state, lastDistribution: null };
 
   // Build a map of playerId -> resources to add
   const gains: Map<string, Partial<ResourceCards>> = new Map();
@@ -82,5 +83,10 @@ export function distributeResources(state: GameState, diceTotal: number): GameSt
     return addResources(player, playerGains);
   });
 
-  return { ...state, players: updatedPlayers };
+  const lastDistribution: ResourceGains = {};
+  for (const [pid, g] of gains) {
+    lastDistribution[pid] = g;
+  }
+
+  return { ...state, players: updatedPlayers, lastDistribution };
 }

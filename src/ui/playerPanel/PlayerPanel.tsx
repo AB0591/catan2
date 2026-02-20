@@ -20,7 +20,6 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   isCurrentPlayer,
   isLocalPlayer,
 }) => {
-  const totalCards = Object.values(player.resources).reduce((a, b) => a + b, 0);
 
   return (
     <div
@@ -58,22 +57,25 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         <span style={{ color: '#ffd700', fontWeight: 'bold' }}>⭐ {player.victoryPoints} VP</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
         {Object.entries(player.resources).map(([res, count]) => (
-          <span
+          <div
             key={res}
             style={{
-              fontSize: 11,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
               background: count > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-              padding: '1px 4px',
-              borderRadius: 3,
-              color: count > 0 ? '#fff' : '#666',
+              padding: '4px 6px',
+              borderRadius: 6,
+              minWidth: 34,
+              opacity: count > 0 ? 1 : 0.4,
             }}
           >
-            {RESOURCE_LABELS[res]} {count}
-          </span>
+            <span style={{ fontSize: 18 }}>{RESOURCE_LABELS[res]}</span>
+            <span style={{ fontSize: 12, fontWeight: 'bold', color: count > 0 ? '#fff' : '#888' }}>{count}</span>
+          </div>
         ))}
-        <span style={{ fontSize: 11, color: '#aaa' }}>({totalCards})</span>
       </div>
 
       <div style={{ fontSize: 11, color: '#aaa', display: 'flex', gap: 6 }}>

@@ -80,7 +80,7 @@ export function handleStealResource(state: GameState, action: GameAction): GameS
   const total = totalResources(targetPlayer);
   if (total === 0) {
     // No resources to steal, just move to postRoll
-    return { ...state, turnPhase: 'postRoll' };
+    return { ...state, turnPhase: 'postRoll', lastSteal: null };
   }
 
   // Pick a random resource using seeded RNG
@@ -104,7 +104,7 @@ export function handleStealResource(state: GameState, action: GameAction): GameS
     return p;
   });
 
-  return { ...state, players: updatedPlayers, turnPhase: 'postRoll' };
+  return { ...state, players: updatedPlayers, turnPhase: 'postRoll', lastSteal: { thiefId: action.playerId, victimId: targetPlayerId, resource: stolenResource } };
 }
 
 export function handleDiscardResources(state: GameState, action: GameAction): GameState {
