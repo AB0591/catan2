@@ -6,6 +6,8 @@ import { DiceRoll } from './ui/diceRoll';
 import { BuildMenu } from './ui/buildMenu';
 import { DevCardHand } from './ui/devCardHand';
 import { DiscardDialog } from './ui/discardDialog/DiscardDialog';
+import { StealDialog } from './ui/stealDialog';
+import { getStealTargets } from './engine/robber/robberActions';
 import { TradeDialog } from './ui/tradeDialog';
 import type { VertexId, EdgeId } from './engine/board/boardTypes';
 import type { HexCoord } from './engine/board/hexGrid';
@@ -403,6 +405,25 @@ function GameBoard() {
         dispatch={dispatch}
       />
     )}
+
+    {/* Steal dialog overlay */}
+    {gameState.turnPhase === 'stealing' && currentPlayer && (() => {
+      const targetIds = getStealTargets(gameState, currentPlayer.id);
+      const targets = targetIds.map(id => gameState.players.find(p => p.id === id)!).filter(Boolean);
+      return targets.length > 0 ? (
+        <StealDialog
+          targets={targets}
+          onSteal={(targetPlayerId) => {
+            dispatch({
+              type: 'STEAL_RESOURCE',
+              playerId: currentPlayer.id,
+              payload: { targetPlayerId },
+              timestamp: Date.now(),
+            });
+          }}
+        />
+      ) : null;
+    })()}
 
     {/* Trade dialog overlay */}
     {showTrade && currentPlayer && (

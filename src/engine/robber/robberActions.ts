@@ -24,6 +24,10 @@ export function requiredDiscardCount(player: PlayerState): number {
 }
 
 /** Get playerIds with a building adjacent to the given hex (excluding current player) */
+export function getStealTargets(state: GameState, currentPlayerId: string): string[] {
+  return getAdjacentOpponents(state, state.board.robberHex, currentPlayerId);
+}
+
 function getAdjacentOpponents(state: GameState, hexCoord: HexCoord, currentPlayerId: string): string[] {
   const opponents = new Set<string>();
   for (const [vertexId, vertex] of state.board.graph.vertices) {
