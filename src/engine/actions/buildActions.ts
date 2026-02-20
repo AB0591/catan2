@@ -91,7 +91,7 @@ export function handleBuyDevelopmentCard(state: GameState, action: GameAction): 
 
   const updatedPlayer = removeResources(player, DEV_CARD_COST)!;
   const [cardType, ...remainingDeck] = state.devCardDeck;
-  const newCard = { type: cardType, playedThisTurn: false };
+  const newCard = { type: cardType, playedThisTurn: false, turnBought: state.currentTurn };
   const withCard = {
     ...updatedPlayer,
     developmentCards: [...updatedPlayer.developmentCards, newCard],

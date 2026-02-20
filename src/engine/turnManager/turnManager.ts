@@ -15,6 +15,12 @@ import {
   handleDiscardResources,
   getPlayersWhoMustDiscard,
 } from '../robber/robberActions';
+import {
+  handlePlayKnight,
+  handlePlayRoadBuilding,
+  handlePlayYearOfPlenty,
+  handlePlayMonopoly,
+} from '../developmentCards/devCardActions';
 
 export function appendAction(state: GameState, action: GameAction): GameState {
   return { ...state, actionLog: [...state.actionLog, action] };
@@ -45,11 +51,18 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
 
     case 'END_TURN': {
       const nextIndex = (state.currentPlayerIndex + 1) % state.players.length;
+      // Reset playedThisTurn on all dev cards
+      const resetPlayers = state.players.map(p => ({
+        ...p,
+        developmentCards: p.developmentCards.map(c => ({ ...c, playedThisTurn: false })),
+      }));
       newState = {
         ...newState,
+        players: resetPlayers,
         currentPlayerIndex: nextIndex,
         turnPhase: 'preRoll',
         lastDiceRoll: null,
+        currentTurn: state.currentTurn + 1,
       };
       break;
     }
@@ -120,6 +133,26 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
 
     case 'DISCARD_RESOURCES': {
       newState = handleDiscardResources(newState, action);
+      break;
+    }
+
+    case 'PLAY_KNIGHT': {
+      newState = handlePlayKnight(newState, action);
+      break;
+    }
+
+    case 'PLAY_ROAD_BUILDING': {
+      newState = handlePlayRoadBuilding(newState, action);
+      break;
+    }
+
+    case 'PLAY_YEAR_OF_PLENTY': {
+      newState = handlePlayYearOfPlenty(newState, action);
+      break;
+    }
+
+    case 'PLAY_MONOPOLY': {
+      newState = handlePlayMonopoly(newState, action);
       break;
     }
 

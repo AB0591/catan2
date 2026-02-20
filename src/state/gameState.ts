@@ -67,6 +67,7 @@ export type GameState = {
   longestRoadLength: number;
   largestArmySize: number;
   pendingDiscards: string[];  // playerIds who still need to discard (after rolling 7)
+  currentTurn: number;        // incremented on END_TURN
 };
 
 // Suppress unused import warning — ResourceType is re-exported via index

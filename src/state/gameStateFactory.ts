@@ -73,6 +73,7 @@ export function createInitialGameState(
     longestRoadLength: 0,
     largestArmySize: 0,
     pendingDiscards: [],
+    currentTurn: 0,
   };
 }
 

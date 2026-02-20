@@ -7,6 +7,7 @@ export type DevelopmentCardType = 'knight' | 'victoryPoint' | 'roadBuilding' | '
 export type DevelopmentCard = {
   type: DevelopmentCardType;
   playedThisTurn: boolean;
+  turnBought: number;
 };
 
 export type PlayerColor = 'red' | 'blue' | 'orange' | 'white';
