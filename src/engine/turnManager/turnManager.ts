@@ -3,6 +3,12 @@ import type { GameAction } from '../../state/gameState';
 import type { VertexId, EdgeId } from '../board/boardTypes';
 import { canPlaceSettlement, canPlaceRoad } from '../rules/placementRules';
 import { distributeResources } from '../resources/resourceDistribution';
+import {
+  handleBuildSettlement,
+  handleBuildRoad,
+  handleBuildCity,
+  handleBuyDevelopmentCard,
+} from '../actions/buildActions';
 
 export function appendAction(state: GameState, action: GameAction): GameState {
   return { ...state, actionLog: [...state.actionLog, action] };
@@ -88,6 +94,26 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
 
       newState = { ...newState, players: updatedPlayers, board: updatedBoard };
       newState = advanceSetupOrder(newState);
+      break;
+    }
+
+    case 'BUILD_SETTLEMENT': {
+      newState = handleBuildSettlement(newState, action);
+      break;
+    }
+
+    case 'BUILD_ROAD': {
+      newState = handleBuildRoad(newState, action);
+      break;
+    }
+
+    case 'BUILD_CITY': {
+      newState = handleBuildCity(newState, action);
+      break;
+    }
+
+    case 'BUY_DEVELOPMENT_CARD': {
+      newState = handleBuyDevelopmentCard(newState, action);
       break;
     }
 
