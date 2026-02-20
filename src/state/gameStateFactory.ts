@@ -72,6 +72,7 @@ export function createInitialGameState(
     seed,
     longestRoadLength: 0,
     largestArmySize: 0,
+    pendingDiscards: [],
   };
 }
 

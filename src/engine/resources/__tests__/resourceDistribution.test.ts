@@ -7,7 +7,6 @@ import {
   hasResources,
   totalResources,
 } from '../resourceDistribution';
-import type { BoardState } from '../../../state/boardState';
 import type { GameState } from '../../../state/gameState';
 
 function make2PlayerState() {
@@ -49,7 +48,7 @@ describe('distributeResources', () => {
     };
 
     const after = distributeResources(stateWithBuilding, 6);
-    expect(after.players[0].resources[resource as keyof typeof after.players[0].resources]).toBeGreaterThanOrEqual(1);
+    expect(after.players[0].resources[resource as import("../../../state/playerState").ResourceType]).toBeGreaterThanOrEqual(1);
   });
 
   it('city adjacent to hex with matching roll receives 2 resources', () => {
@@ -67,7 +66,7 @@ describe('distributeResources', () => {
     };
 
     const after = distributeResources(stateWithCity, 5);
-    expect(after.players[0].resources[resource as keyof typeof after.players[0].resources]).toBeGreaterThanOrEqual(2);
+    expect(after.players[0].resources[resource as import("../../../state/playerState").ResourceType]).toBeGreaterThanOrEqual(2);
   });
 
   it('no resources distributed on roll of 7', () => {
@@ -108,9 +107,9 @@ describe('distributeResources', () => {
       },
     };
 
-    const before = stateWithRobber.players[0].resources[targetHex.resource as keyof typeof stateWithRobber.players[0].resources];
+    const before = stateWithRobber.players[0].resources[targetHex.resource as import("../../../state/playerState").ResourceType];
     const after = distributeResources(stateWithRobber, targetHex.numberToken!);
-    const afterVal = after.players[0].resources[targetHex.resource as keyof typeof after.players[0].resources];
+    const afterVal = after.players[0].resources[targetHex.resource as import("../../../state/playerState").ResourceType];
     expect(afterVal).toBe(before); // no change
   });
 
@@ -140,7 +139,7 @@ describe('distributeResources', () => {
     };
 
     const after = distributeResources(stateWithBuildings, 8);
-    const resource = hex8.resource as keyof typeof after.players[0].resources;
+    const resource = hex8.resource as import("../../../state/playerState").ResourceType;
     expect(after.players[0].resources[resource]).toBeGreaterThanOrEqual(1);
     expect(after.players[1].resources[resource]).toBeGreaterThanOrEqual(1);
   });

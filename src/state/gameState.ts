@@ -11,7 +11,9 @@ export type TurnPhase =
   | 'preRoll'         // before dice roll
   | 'robber'          // moving robber after 7
   | 'postRoll'        // after roll, before end turn (trade/build)
-  | 'setupPlacement'; // placing initial settlements/roads
+  | 'setupPlacement'  // placing initial settlements/roads
+  | 'stealing'        // choosing a player to steal from
+  | 'discarding';     // players with >7 cards must discard
 
 export type DiceRoll = {
   die1: number;
@@ -64,6 +66,7 @@ export type GameState = {
   seed: number;               // RNG seed for reproducibility
   longestRoadLength: number;
   largestArmySize: number;
+  pendingDiscards: string[];  // playerIds who still need to discard (after rolling 7)
 };
 
 // Suppress unused import warning — ResourceType is re-exported via index

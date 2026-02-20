@@ -9,6 +9,12 @@ import {
   handleBuildCity,
   handleBuyDevelopmentCard,
 } from '../actions/buildActions';
+import {
+  handleMoveRobber,
+  handleStealResource,
+  handleDiscardResources,
+  getPlayersWhoMustDiscard,
+} from '../robber/robberActions';
 
 export function appendAction(state: GameState, action: GameAction): GameState {
   return { ...state, actionLog: [...state.actionLog, action] };
@@ -24,7 +30,12 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
       const diceRoll = { die1, die2, total };
 
       if (total === 7) {
-        newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'robber' };
+        const mustDiscard = getPlayersWhoMustDiscard({ ...newState, lastDiceRoll: diceRoll });
+        if (mustDiscard.length > 0) {
+          newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'discarding', pendingDiscards: mustDiscard };
+        } else {
+          newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'robber', pendingDiscards: [] };
+        }
       } else {
         newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'postRoll' };
         newState = distributeResources(newState, total);
@@ -94,6 +105,21 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
 
       newState = { ...newState, players: updatedPlayers, board: updatedBoard };
       newState = advanceSetupOrder(newState);
+      break;
+    }
+
+    case 'MOVE_ROBBER': {
+      newState = handleMoveRobber(newState, action);
+      break;
+    }
+
+    case 'STEAL_RESOURCE': {
+      newState = handleStealResource(newState, action);
+      break;
+    }
+
+    case 'DISCARD_RESOURCES': {
+      newState = handleDiscardResources(newState, action);
       break;
     }
 
