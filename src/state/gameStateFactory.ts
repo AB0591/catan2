@@ -5,6 +5,7 @@ import { createBoardState } from './boardState';
 import { createBoard } from '../engine/board';
 import type { Port } from './boardState';
 import type { DevelopmentCardType } from './playerState';
+import { createStandardPorts } from '../engine/trading/tradingActions';
 
 // Mulberry32 seeded RNG (same as board)
 function mulberry32(seed: number) {
@@ -45,7 +46,7 @@ export function createInitialGameState(
 ): GameState {
   const rng = mulberry32(seed);
   const board = createBoard(seed);
-  const ports: Port[] = []; // ports will be implemented in Step 12 (trading)
+  const ports: Port[] = createStandardPorts(board.hexes, board.vertices);
   const boardState = createBoardState(board, ports);
   const players = playerConfigs.map(p => createPlayer(p.id, p.name, p.color));
   const devCardDeck = createDevCardDeck(rng);

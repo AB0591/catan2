@@ -22,6 +22,7 @@ import {
   handlePlayMonopoly,
 } from '../developmentCards/devCardActions';
 import { updateVictoryState } from '../victory/victoryEngine';
+import { handleTradeBank, handleTradePlayer } from '../trading/tradingActions';
 
 export function appendAction(state: GameState, action: GameAction): GameState {
   return { ...state, actionLog: [...state.actionLog, action] };
@@ -174,6 +175,17 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
 
     case 'BUY_DEVELOPMENT_CARD': {
       newState = handleBuyDevelopmentCard(newState, action);
+      break;
+    }
+
+    case 'TRADE_BANK':
+    case 'TRADE_PORT': {
+      newState = handleTradeBank(newState, action);
+      break;
+    }
+
+    case 'TRADE_PLAYER': {
+      newState = handleTradePlayer(newState, action);
       break;
     }
 

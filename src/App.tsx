@@ -6,8 +6,10 @@ import { DiceRoll } from './ui/diceRoll';
 import { BuildMenu } from './ui/buildMenu';
 import { DevCardHand } from './ui/devCardHand';
 import { DiscardDialog } from './ui/discardDialog/DiscardDialog';
+import { TradeDialog } from './ui/tradeDialog';
 import type { VertexId, EdgeId } from './engine/board/boardTypes';
 import type { HexCoord } from './engine/board/hexGrid';
+import type { ResourceType } from './state/playerState';
 
 const PLAYER_CSS_COLORS: Record<string, string> = {
   red: '#ef4444',
@@ -116,6 +118,8 @@ function GameBoard() {
     getCurrentPlayer,
     getValidPlacements,
   } = useGameStore();
+
+  const [showTrade, setShowTrade] = useState(false);
 
   if (!gameState) return null;
 
@@ -321,22 +325,26 @@ function GameBoard() {
             )}
 
             {gameState.turnPhase === 'postRoll' && (
-              <button
-                onClick={handleEndTurn}
-                style={{
-                  width: '100%',
-                  padding: '8px 0',
-                  background: '#374151',
-                  color: '#fff',
-                  border: '1px solid #555',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  marginTop: 6,
-                }}
-              >
-                End Turn →
-              </button>
+              <>
+                <button
+                  onClick={() => setShowTrade(true)}
+                  style={{
+                    width: '100%', padding: '8px 0', background: '#0f766e',
+                    color: '#fff', border: '1px solid #0d9488', borderRadius: 6, fontSize: 13, cursor: 'pointer', marginTop: 6,
+                  }}
+                >
+                  🔄 Trade
+                </button>
+                <button
+                  onClick={handleEndTurn}
+                  style={{
+                    width: '100%', padding: '8px 0', background: '#374151',
+                    color: '#fff', border: '1px solid #555', borderRadius: 6, fontSize: 13, cursor: 'pointer', marginTop: 6,
+                  }}
+                >
+                  End Turn →
+                </button>
+              </>
             )}
 
             {gameState.turnPhase === 'discarding' && gameState.pendingDiscards.length > 0 && (
@@ -382,6 +390,33 @@ function GameBoard() {
       <DiscardDialogWrapper
         gameState={gameState}
         dispatch={dispatch}
+      />
+    )}
+
+    {/* Trade dialog overlay */}
+    {showTrade && currentPlayer && (
+      <TradeDialog
+        gameState={gameState}
+        playerId={currentPlayer.id}
+        onClose={() => setShowTrade(false)}
+        onTradeBank={(give: ResourceType, receive: ResourceType) => {
+          dispatch({
+            type: 'TRADE_BANK',
+            playerId: currentPlayer.id,
+            payload: { give, receive },
+            timestamp: Date.now(),
+          });
+          setShowTrade(false);
+        }}
+        onTradePlayer={(targetId, give, receive) => {
+          dispatch({
+            type: 'TRADE_PLAYER',
+            playerId: currentPlayer.id,
+            payload: { targetPlayerId: targetId, give, receive },
+            timestamp: Date.now(),
+          });
+          setShowTrade(false);
+        }}
       />
     )}
   </>
