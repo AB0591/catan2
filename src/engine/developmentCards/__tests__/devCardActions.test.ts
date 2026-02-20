@@ -24,7 +24,6 @@ function make2PlayerState() {
 function giveCard(state: GameState, playerId: string, cardType: string, turnBought = -1): GameState {
   const pi = state.players.findIndex(p => p.id === playerId);
   if (pi === -1) return state;
-  const player = state.players[pi];
   const newCard = { type: cardType as import('../../../state/playerState').DevelopmentCardType, playedThisTurn: false, turnBought };
   const updatedPlayers = state.players.map((p, i) =>
     i === pi ? { ...p, developmentCards: [...p.developmentCards, newCard] } : p

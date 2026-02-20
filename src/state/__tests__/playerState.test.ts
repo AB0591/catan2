@@ -42,9 +42,9 @@ describe('calculateVictoryPoints', () => {
     const player: PlayerState = {
       ...createPlayer('p1', 'Alice', 'red'),
       developmentCards: [
-        { type: 'victoryPoint', playedThisTurn: false },
-        { type: 'victoryPoint', playedThisTurn: false },
-        { type: 'knight', playedThisTurn: false },
+        { type: 'victoryPoint', playedThisTurn: false, turnBought: 0 },
+        { type: 'victoryPoint', playedThisTurn: false, turnBought: 0 },
+        { type: 'knight', playedThisTurn: false, turnBought: 0 },
       ],
     };
     expect(calculateVictoryPoints(player)).toBe(2);

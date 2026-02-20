@@ -21,6 +21,7 @@ import {
   handlePlayYearOfPlenty,
   handlePlayMonopoly,
 } from '../developmentCards/devCardActions';
+import { updateVictoryState } from '../victory/victoryEngine';
 
 export function appendAction(state: GameState, action: GameAction): GameState {
   return { ...state, actionLog: [...state.actionLog, action] };
@@ -178,6 +179,11 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
 
     default:
       break;
+  }
+
+  // Update victory state after any action that could affect VP
+  if (newState.phase === 'playing' || newState.phase === 'finished') {
+    newState = updateVictoryState(newState);
   }
 
   return newState;

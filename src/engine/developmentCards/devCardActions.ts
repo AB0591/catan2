@@ -4,7 +4,7 @@ import type { HexCoord } from '../board/hexGrid';
 import type { EdgeId } from '../board/boardTypes';
 import type { ResourceType } from '../../state/playerState';
 import { canPlaceRoad } from '../rules/placementRules';
-import { addResources, removeResources } from '../resources/resourceDistribution';
+import { addResources } from '../resources/resourceDistribution';
 import { handleMoveRobber, handleStealResource } from '../robber/robberActions';
 
 function hasPlayedDevCard(state: GameState, playerId: string): boolean {
