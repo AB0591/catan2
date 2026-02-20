@@ -4,6 +4,8 @@ import { HexBoard } from './ui/boardRenderer';
 import { PlayerPanel } from './ui/playerPanel';
 import { DiceRoll } from './ui/diceRoll';
 import { BuildMenu } from './ui/buildMenu';
+import { DevCardHand } from './ui/devCardHand';
+import { DiscardDialog } from './ui/discardDialog/DiscardDialog';
 import type { VertexId, EdgeId } from './engine/board/boardTypes';
 import type { HexCoord } from './engine/board/hexGrid';
 
@@ -240,6 +242,7 @@ function GameBoard() {
       : 'Build or trade, then end turn';
 
   return (
+    <>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Left sidebar */}
       <div style={{ width: 180, padding: 10, overflowY: 'auto', background: 'rgba(0,0,0,0.3)' }}>
@@ -341,10 +344,74 @@ function GameBoard() {
                 ⚠️ {gameState.pendingDiscards.map(id => gameState.players.find(p => p.id === id)?.name).join(', ')} must discard
               </div>
             )}
+
+            {/* Dev card hand */}
+            <div style={{ marginTop: 8, borderTop: '1px solid #333', paddingTop: 8 }}>
+              <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>Dev Cards</div>
+              <DevCardHand
+                cards={currentPlayer.developmentCards}
+                currentTurn={gameState.currentTurn}
+                canPlay={gameState.turnPhase === 'postRoll' || gameState.turnPhase === 'preRoll'}
+                onPlayCard={(cardIndex, payload) => {
+                  const card = currentPlayer.developmentCards[cardIndex];
+                  if (!card) return;
+                  const actionMap: Record<string, string> = {
+                    knight: 'PLAY_KNIGHT',
+                    roadBuilding: 'PLAY_ROAD_BUILDING',
+                    yearOfPlenty: 'PLAY_YEAR_OF_PLENTY',
+                    monopoly: 'PLAY_MONOPOLY',
+                  };
+                  const actionType = actionMap[card.type];
+                  if (!actionType) return;
+                  dispatch({
+                    type: actionType as Parameters<typeof dispatch>[0]['type'],
+                    playerId: currentPlayer.id,
+                    payload: { cardIndex, ...payload },
+                    timestamp: Date.now(),
+                  });
+                }}
+              />
+            </div>
           </>
         )}
       </div>
     </div>
+
+    {/* Discard dialog overlay */}
+    {gameState.turnPhase === 'discarding' && gameState.pendingDiscards.length > 0 && (
+      <DiscardDialogWrapper
+        gameState={gameState}
+        dispatch={dispatch}
+      />
+    )}
+  </>
+  );
+}
+
+type DiscardWrapperProps = {
+  gameState: NonNullable<ReturnType<typeof useGameStore.getState>['gameState']>;
+  dispatch: (action: ReturnType<typeof useGameStore.getState>['dispatch'] extends (a: infer A) => unknown ? A : never) => void;
+};
+
+function DiscardDialogWrapper({ gameState, dispatch }: DiscardWrapperProps) {
+  const discardPlayerId = gameState.pendingDiscards[0];
+  const discardPlayer = gameState.players.find(p => p.id === discardPlayerId);
+  if (!discardPlayer) return null;
+  const totalCards = Object.values(discardPlayer.resources).reduce((a, b) => a + b, 0);
+  const mustDiscard = Math.floor(totalCards / 2);
+  return (
+    <DiscardDialog
+      player={discardPlayer}
+      mustDiscard={mustDiscard}
+      onDiscard={(resources) => {
+        dispatch({
+          type: 'DISCARD_RESOURCES',
+          playerId: discardPlayerId,
+          payload: { resources },
+          timestamp: Date.now(),
+        });
+      }}
+    />
   );
 }
 
