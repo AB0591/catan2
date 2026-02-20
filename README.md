@@ -1,73 +1,103 @@
-# React + TypeScript + Vite
+# Settlers of Catan — Digital Implementation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-featured digital implementation of Settlers of Catan built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## How to Start a Game
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Choose 2–4 players (name each player)
+2. Check "AI" to make a player computer-controlled
+3. Click **Start Game**
+4. Follow on-screen instructions for setup and play
+
+## Running Tests
+
+```bash
+npm test
 ```
+
+146 tests covering the full game engine.
+
+## Building for Production
+
+```bash
+npm run build
+```
+
+## Architecture
+
+The codebase is organized into three main layers:
+
+### Engine (`src/engine/`)
+
+Pure TypeScript game logic — no React dependencies.
+
+| Module | Description |
+|--------|-------------|
+| `board/` | Hex grid, vertex/edge graph, board setup |
+| `rules/` | Placement rules (settlements, roads, cities) |
+| `resources/` | Resource distribution on dice roll |
+| `actions/` | Build actions (settlement, road, city, dev card) |
+| `robber/` | Robber mechanics (7, discard, steal) |
+| `developmentCards/` | Knight, YoP, Monopoly, Road Building |
+| `victory/` | Victory point calculation, longest road, largest army |
+| `trading/` | Bank trades (4:1, 3:1, 2:1 ports), player trades |
+| `ai/` | Heuristic AI player |
+| `turnManager/` | Central action dispatcher |
+
+### State (`src/state/`)
+
+Game state types and factories.
+
+| File | Description |
+|------|-------------|
+| `gameState.ts` | `GameState`, `GameAction`, `TurnPhase` types |
+| `boardState.ts` | `BoardState`, `Port` types |
+| `playerState.ts` | `PlayerState`, resources, dev cards |
+| `gameStateFactory.ts` | `createInitialGameState` |
+
+### UI (`src/ui/`)
+
+React components for game rendering.
+
+| Component | Description |
+|-----------|-------------|
+| `boardRenderer/HexBoard` | SVG board with hexes, settlements, roads |
+| `playerPanel/PlayerPanel` | Player info sidebar |
+| `diceRoll/DiceRoll` | Dice display and roll button |
+| `buildMenu/BuildMenu` | Build buttons with cost display |
+| `devCardHand/DevCardHand` | Dev card list with play buttons |
+| `tradeDialog/TradeDialog` | Bank and player trade dialog |
+| `discardDialog/DiscardDialog` | Discard UI for 7-roll |
+
+### API (`src/api/`)
+
+Serialization and multiplayer sync primitives.
+
+| File | Description |
+|------|-------------|
+| `gameController.ts` | `serializeState`, `deserializeState`, `replayFromLog`, `validateAction` |
+| `actionDispatcher.ts` | Middleware-based dispatcher, logging/validation middlewares |
+
+### Store (`src/store/`)
+
+Zustand store connecting UI to engine.
+
+## Documentation
+
+Detailed step-by-step implementation docs in [`Documentation/`](./Documentation/):
+
+- [Step 10: UI Board Renderer](./Documentation/step10-ui-board-renderer.md)
+- [Step 11: Player Controls](./Documentation/step11-player-controls.md)
+- [Step 12: Trading System](./Documentation/step12-trading.md)
+- [Step 13: AI Opponents](./Documentation/step13-ai-opponents.md)
+- [Step 14: Multiplayer Sync](./Documentation/step14-multiplayer-sync.md)
+
