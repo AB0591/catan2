@@ -2,6 +2,7 @@ import type { GameState } from '../../state/gameState';
 import type { GameAction } from '../../state/gameState';
 import type { VertexId, EdgeId } from '../board/boardTypes';
 import { canPlaceSettlement, canPlaceRoad } from '../rules/placementRules';
+import { distributeResources } from '../resources/resourceDistribution';
 
 export function appendAction(state: GameState, action: GameAction): GameState {
   return { ...state, actionLog: [...state.actionLog, action] };
@@ -20,6 +21,7 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
         newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'robber' };
       } else {
         newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'postRoll' };
+        newState = distributeResources(newState, total);
       }
       break;
     }
