@@ -12,6 +12,7 @@ import { getStealTargets } from './engine/robber/robberActions';
 import { TradeDialog } from './ui/tradeDialog';
 import { ActionTimeline } from './ui/timeline/ActionTimeline';
 import { Coachmark } from './ui/onboarding/Coachmark';
+import { ResourceGainOverlay } from './ui/resourceGainOverlay/ResourceGainOverlay';
 import {
   getBuildDisabledReason,
   getDevCardPlayReason,
@@ -35,6 +36,10 @@ function nextTimestamp(): number {
 
 function rollDie(): number {
   return Math.floor(Math.random() * 6) + 1;
+}
+
+function hasPositiveGains(gains: Partial<Record<ResourceType, number>> | null | undefined): boolean {
+  return Object.values(gains ?? {}).some(v => (v ?? 0) > 0);
 }
 
 type StartScreenProps = {
@@ -357,6 +362,11 @@ function GameBoard() {
         .filter(c => !(c.q === gameState.board.robberHex.q && c.r === gameState.board.robberHex.r))
     : [];
 
+  const distributionOverlayKey =
+    gameState.turnPhase === 'postRoll' && gameState.lastDistribution && gameState.lastDiceRoll
+      ? `${gameState.currentTurn}-${gameState.lastDiceRoll.die1}-${gameState.lastDiceRoll.die2}`
+      : null;
+
   const setupPhaseLabel = (() => {
     if (gameState.phase !== 'setup' || !currentPlayer) return '';
     const settlementsPlaced = 5 - currentPlayer.settlements;
@@ -428,14 +438,32 @@ function GameBoard() {
       {/* Left sidebar */}
       <div style={{ width: 180, padding: 10, overflowY: 'auto', background: 'rgba(0,0,0,0.3)' }}>
         <h2 style={{ fontSize: 14, color: '#ffd700', marginBottom: 8, marginTop: 0 }}>Players</h2>
-        {gameState.players.map((player, i) => (
-          <PlayerPanel
-            key={player.id}
-            player={player}
-            isCurrentPlayer={i === gameState.currentPlayerIndex}
-            isLocalPlayer={true}
-          />
-        ))}
+        {gameState.players.map((player, i) => {
+          const gains = gameState.lastDistribution?.[player.id];
+          const showOverlay = distributionOverlayKey !== null && hasPositiveGains(gains);
+          return (
+            <div
+              key={player.id}
+              style={{
+                position: 'relative',
+                paddingTop: showOverlay ? 94 : 0,
+              }}
+            >
+              {showOverlay && (
+                <ResourceGainOverlay
+                  key={`${player.id}-${distributionOverlayKey}`}
+                  gains={gains}
+                  durationMs={2500}
+                />
+              )}
+              <PlayerPanel
+                player={player}
+                isCurrentPlayer={i === gameState.currentPlayerIndex}
+                isLocalPlayer={true}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Center: board */}
