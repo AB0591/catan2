@@ -10,6 +10,7 @@ export type BuildMenuProps = {
   onBuildRoad: () => void;
   onBuildCity: () => void;
   onBuyDevCard: () => void;
+  disabledReasons?: Partial<Record<'settlement' | 'road' | 'city' | 'devCard', string>>;
 };
 
 function canAfford(resources: PlayerState['resources'], cost: Partial<PlayerState['resources']>): boolean {
@@ -43,6 +44,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
   onBuildRoad,
   onBuildCity,
   onBuyDevCard,
+  disabledReasons = {},
 }) => {
   const canBuild = turnPhase === 'postRoll';
   const canSettlement = canBuild && canAfford(player.resources, COSTS.settlement) && player.settlements > 0;
@@ -56,39 +58,51 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       <button
         onClick={onBuildSettlement}
         disabled={!canSettlement}
-        title={formatResourceCostTooltip(COSTS.settlement)}
+        title={disabledReasons.settlement ? `${formatResourceCostTooltip(COSTS.settlement)}\n${disabledReasons.settlement}` : formatResourceCostTooltip(COSTS.settlement)}
         style={{ ...BTN_STYLE, background: canSettlement ? '#2d6a2d' : '#333', color: canSettlement ? '#fff' : '#666' }}
       >
         🏠 Settlement
         <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>🧱🌲🐑🌾</span>
       </button>
+      {!canSettlement && disabledReasons.settlement && (
+        <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.settlement}</div>
+      )}
       <button
         onClick={onBuildRoad}
         disabled={!canRoad}
-        title={formatResourceCostTooltip(COSTS.road)}
+        title={disabledReasons.road ? `${formatResourceCostTooltip(COSTS.road)}\n${disabledReasons.road}` : formatResourceCostTooltip(COSTS.road)}
         style={{ ...BTN_STYLE, background: canRoad ? '#78350f' : '#333', color: canRoad ? '#fff' : '#666' }}
       >
         🛣️ Road
         <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>🧱🌲</span>
       </button>
+      {!canRoad && disabledReasons.road && (
+        <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.road}</div>
+      )}
       <button
         onClick={onBuildCity}
         disabled={!canCity}
-        title={formatResourceCostTooltip(COSTS.city)}
+        title={disabledReasons.city ? `${formatResourceCostTooltip(COSTS.city)}\n${disabledReasons.city}` : formatResourceCostTooltip(COSTS.city)}
         style={{ ...BTN_STYLE, background: canCity ? '#1e40af' : '#333', color: canCity ? '#fff' : '#666' }}
       >
         🏙️ City
         <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>⛰️⛰️⛰️🌾🌾</span>
       </button>
+      {!canCity && disabledReasons.city && (
+        <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.city}</div>
+      )}
       <button
         onClick={onBuyDevCard}
         disabled={!canDev}
-        title={formatResourceCostTooltip(COSTS.devCard)}
+        title={disabledReasons.devCard ? `${formatResourceCostTooltip(COSTS.devCard)}\n${disabledReasons.devCard}` : formatResourceCostTooltip(COSTS.devCard)}
         style={{ ...BTN_STYLE, background: canDev ? '#7e22ce' : '#333', color: canDev ? '#fff' : '#666' }}
       >
         🃏 Dev Card
         <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>⛰️🌾🐑</span>
       </button>
+      {!canDev && disabledReasons.devCard && (
+        <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.devCard}</div>
+      )}
     </div>
   );
 };

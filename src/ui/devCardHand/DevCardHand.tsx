@@ -7,6 +7,7 @@ export type DevCardHandProps = {
   cards: DevelopmentCard[];
   currentTurn: number;
   canPlay: boolean;
+  blockedReason?: string | null;
   onPlayCard: (cardIndex: number, payload: Record<string, unknown>) => void;
 };
 
@@ -83,13 +84,16 @@ function MonopolyPayload({ onConfirm }: { onConfirm: (payload: Record<string, un
   );
 }
 
-export const DevCardHand: FC<DevCardHandProps> = ({ cards, currentTurn, canPlay, onPlayCard }) => {
+export const DevCardHand: FC<DevCardHandProps> = ({ cards, currentTurn, canPlay, blockedReason, onPlayCard }) => {
   if (cards.length === 0) {
     return <div style={{ fontSize: 12, color: '#666', padding: '4px 0' }}>No dev cards</div>;
   }
 
   return (
     <div>
+      {!canPlay && blockedReason && (
+        <div style={{ fontSize: 10, color: '#888', marginBottom: 6 }}>{blockedReason}</div>
+      )}
       {cards.map((card, i) => {
         const isPlayable =
           canPlay &&

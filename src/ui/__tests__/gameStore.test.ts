@@ -6,9 +6,14 @@ describe('gameStore', () => {
     // Reset store state before each test
     useGameStore.setState({
       gameState: null,
+      liveGameState: null,
+      initialGameState: null,
       selectedAction: null,
       lastPlacedSettlementVertexId: null,
       aiPlayerIds: [],
+      isReplayMode: false,
+      timelineIndex: null,
+      debugEnabled: true,
     });
   });
 
@@ -50,5 +55,36 @@ describe('gameStore', () => {
     expect(player).not.toBeNull();
     expect(player!.name).toBe('Alice');
     expect(player!.id).toBe('player_0');
+  });
+
+  it('supports replay mode and return to live state', () => {
+    useGameStore.getState().startGame(['Alice', 'Bob']);
+    const validVertices = useGameStore.getState().getValidPlacements().vertices;
+    const vertexId = validVertices[0];
+    useGameStore.getState().dispatch({
+      type: 'PLACE_SETTLEMENT',
+      playerId: 'player_0',
+      payload: { vertexId },
+      timestamp: Date.now(),
+    });
+
+    expect(useGameStore.getState().liveGameState?.actionLog.length).toBe(1);
+    useGameStore.getState().setTimelineIndex(0);
+    expect(useGameStore.getState().isReplayMode).toBe(true);
+    expect(useGameStore.getState().timelineIndex).toBe(0);
+
+    useGameStore.getState().exitReplayMode();
+    expect(useGameStore.getState().isReplayMode).toBe(false);
+    expect(useGameStore.getState().gameState?.actionLog.length).toBe(1);
+  });
+
+  it('runs debug commands against live game state', () => {
+    useGameStore.getState().startGame(['Alice', 'Bob']);
+    const result = useGameStore.getState().runDebugCommand('give player_0 wood 3');
+    expect(result.ok).toBe(true);
+
+    const current = useGameStore.getState().gameState;
+    expect(current?.players[0].resources.wood).toBe(3);
+    expect(current?.actionLog.length).toBe(0);
   });
 });
