@@ -1,0 +1,25 @@
+# Allow any `npm ...` command to run outside the sandbox (no prompt).
+prefix_rule(
+    pattern = ["npm"],
+    decision = "allow",
+    justification = "Allow npm only for this repo to install deps.",
+    match = [
+        "npm install",
+        "npm ci",
+        "npm test",
+        "npm audit",
+        "npm run build",
+    ],
+)
+
+# Allow any `npx ...` command to run outside the sandbox (no prompt).
+prefix_rule(
+    pattern = ["npx"],
+    decision = "allow",
+    justification = "Allow npx only for this repo (tool runners used by JS builds).",
+    match = [
+        "npx vite --version",
+        "npx tailwindcss -v",
+        "npx jest --version",
+    ],
+)

@@ -1,0 +1,27 @@
+# Allow common git commands to run outside the sandbox for this repo only.
+
+prefix_rule(
+    pattern = ["git"],
+    decision = "allow",
+    justification = "Allow git for version control in the Catan project.",
+    match = [
+        "git status",
+        "git add .",
+        "git add -A",
+        "git commit -m init",
+        "git commit -m update",
+        "git checkout -b feature",
+        "git checkout main",
+        "git switch -c feature",
+        "git merge main",
+        "git diff",
+        "git log",
+        "git pull",
+        "git push",
+        "git fetch",
+        "git clone",
+        "git init",
+        "git remote -v",
+        "git remote add origin",
+    ],
+)
