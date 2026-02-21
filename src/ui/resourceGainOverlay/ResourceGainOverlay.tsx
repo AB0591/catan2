@@ -11,7 +11,7 @@ const ANIMATION_NAME = 'resourceGainFade';
 
 export const ResourceGainOverlay: FC<ResourceGainOverlayProps> = ({
   gains,
-  durationMs = 2500,
+  durationMs = 8000,
 }) => {
   const entries = (Object.entries(gains ?? {}) as [ResourceType, number][])
     .filter(([, amount]) => (amount ?? 0) > 0);
@@ -61,9 +61,9 @@ export const ResourceGainOverlay: FC<ResourceGainOverlayProps> = ({
               key={resource}
               title={`${amount} ${RESOURCE_NAMES[resource]}`}
               style={{
-                width: 58,
-                height: 74,
-                marginLeft: index === 0 ? 0 : -14,
+                width: 116,
+                height: 148,
+                marginLeft: index === 0 ? 0 : -28,
                 borderRadius: 8,
                 border: '1px solid rgba(255,255,255,0.4)',
                 background: 'linear-gradient(180deg, rgba(30,41,59,0.96), rgba(15,23,42,0.96))',
@@ -75,8 +75,8 @@ export const ResourceGainOverlay: FC<ResourceGainOverlayProps> = ({
                 color: '#fff',
               }}
             >
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{RESOURCE_ICONS[resource]}</span>
-              <span style={{ fontSize: 15, fontWeight: 800, marginTop: 4 }}>+{amount}</span>
+              <span style={{ fontSize: 44, lineHeight: 1 }}>{RESOURCE_ICONS[resource]}</span>
+              <span style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>+{amount}</span>
             </div>
           ))}
         </div>

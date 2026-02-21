@@ -436,7 +436,7 @@ function GameBoard() {
     <>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Left sidebar */}
-      <div style={{ width: 180, padding: 10, overflowY: 'auto', background: 'rgba(0,0,0,0.3)' }}>
+      <div style={{ width: 340, padding: 10, overflowY: 'auto', background: 'rgba(0,0,0,0.3)' }}>
         <h2 style={{ fontSize: 14, color: '#ffd700', marginBottom: 8, marginTop: 0 }}>Players</h2>
         {gameState.players.map((player, i) => {
           const gains = gameState.lastDistribution?.[player.id];
@@ -445,22 +445,35 @@ function GameBoard() {
             <div
               key={player.id}
               style={{
-                position: 'relative',
-                paddingTop: showOverlay ? 94 : 0,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
+                marginBottom: 8,
               }}
             >
-              {showOverlay && (
-                <ResourceGainOverlay
-                  key={`${player.id}-${distributionOverlayKey}`}
-                  gains={gains}
-                  durationMs={2500}
+              <div style={{ width: 180, flexShrink: 0 }}>
+                <PlayerPanel
+                  player={player}
+                  isCurrentPlayer={i === gameState.currentPlayerIndex}
+                  isLocalPlayer={true}
                 />
-              )}
-              <PlayerPanel
-                player={player}
-                isCurrentPlayer={i === gameState.currentPlayerIndex}
-                isLocalPlayer={true}
-              />
+              </div>
+              <div
+                style={{
+                  width: 132,
+                  height: 188,
+                  position: 'relative',
+                  flexShrink: 0,
+                }}
+              >
+                {showOverlay && (
+                  <ResourceGainOverlay
+                    key={`${player.id}-${distributionOverlayKey}`}
+                    gains={gains}
+                    durationMs={8000}
+                  />
+                )}
+              </div>
             </div>
           );
         })}
