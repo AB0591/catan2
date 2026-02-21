@@ -77,6 +77,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         <span>🏙️ {player.cities}</span>
         <span>🛣️ {player.roads}</span>
         <span>🃏 {player.developmentCards.length}</span>
+        <span title="Knights played">⚔️ {player.knightsPlayed}</span>
       </div>
 
       {player.hasLargestArmy && (
