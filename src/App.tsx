@@ -1148,14 +1148,18 @@ function GameBoard() {
                 setKnightMode('none');
                 setCkBuildCityWallMode(false);
               }}
-              onBuyDevCard={() => {
-                dispatch({
-                  type: 'BUY_DEVELOPMENT_CARD',
-                  playerId: currentPlayer.id,
-                  payload: {},
-                  timestamp: nextTimestamp(),
-                });
-              }}
+              onBuyDevCard={
+                gameState.expansionRules === 'cities_and_knights'
+                  ? undefined
+                  : () => {
+                      dispatch({
+                        type: 'BUY_DEVELOPMENT_CARD',
+                        playerId: currentPlayer.id,
+                        payload: {},
+                        timestamp: nextTimestamp(),
+                      });
+                    }
+              }
               onBuildKnight={
                 gameState.expansionRules === 'cities_and_knights' && gameState.ck
                   ? () => {

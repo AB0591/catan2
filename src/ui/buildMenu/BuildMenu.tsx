@@ -9,7 +9,7 @@ export type BuildMenuProps = {
   onBuildSettlement: () => void;
   onBuildRoad: () => void;
   onBuildCity: () => void;
-  onBuyDevCard: () => void;
+  onBuyDevCard?: () => void;
   onBuildKnight?: () => void;
   buildKnightDisabledReason?: string | null;
   disabledReasons?: Partial<Record<'settlement' | 'road' | 'city' | 'devCard', string>>;
@@ -115,17 +115,21 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
           )}
         </>
       )}
-      <button
-        onClick={onBuyDevCard}
-        disabled={!canDev}
-        title={disabledReasons.devCard ? `${formatResourceCostTooltip(COSTS.devCard)}\n${disabledReasons.devCard}` : formatResourceCostTooltip(COSTS.devCard)}
-        style={{ ...BTN_STYLE, background: canDev ? '#7e22ce' : '#333', color: canDev ? '#fff' : '#666' }}
-      >
-        🃏 Dev Card
-        <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>⛰️🌾🐑</span>
-      </button>
-      {!canDev && disabledReasons.devCard && (
-        <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.devCard}</div>
+      {onBuyDevCard && (
+        <>
+          <button
+            onClick={onBuyDevCard}
+            disabled={!canDev}
+            title={disabledReasons.devCard ? `${formatResourceCostTooltip(COSTS.devCard)}\n${disabledReasons.devCard}` : formatResourceCostTooltip(COSTS.devCard)}
+            style={{ ...BTN_STYLE, background: canDev ? '#7e22ce' : '#333', color: canDev ? '#fff' : '#666' }}
+          >
+            🃏 Dev Card
+            <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>⛰️🌾🐑</span>
+          </button>
+          {!canDev && disabledReasons.devCard && (
+            <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.devCard}</div>
+          )}
+        </>
       )}
     </div>
   );
