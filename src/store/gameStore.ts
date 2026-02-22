@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { GameState, GameAction } from '../state/gameState';
+import type { ExpansionRules } from '../state/gameState';
 import type { PlayerState } from '../state/playerState';
 import type { VertexId, EdgeId } from '../engine/board/boardTypes';
 import { dispatchAction } from '../engine/turnManager/turnManager';
@@ -117,13 +118,14 @@ type GameStore = {
   lastPlayerNames: string[];
   lastAiPlayerIds: string[];
   isAIThinking: boolean;
+  lastExpansionRules: ExpansionRules;
   debugEnabled: boolean;
   lastDebugMessage: string | null;
   isReplayMode: boolean;
   timelineIndex: number | null;
   savedScenarios: ScenarioSnapshot[];
   onboardingSeen: OnboardingSeen;
-  startGame: (playerNames: string[], aiPlayerIds?: string[]) => void;
+  startGame: (playerNames: string[], aiPlayerIds?: string[], expansionRules?: ExpansionRules) => void;
   restartGame: () => void;
   dispatch: (action: GameAction) => void;
   dispatchLive: (action: GameAction) => void;
@@ -154,6 +156,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastPlayerNames: [],
   lastAiPlayerIds: [],
   isAIThinking: false,
+  lastExpansionRules: 'base',
   debugEnabled: DEBUG_ENABLED,
   lastDebugMessage: null,
   isReplayMode: false,
@@ -161,10 +164,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   savedScenarios: loadSavedScenarios(),
   onboardingSeen: loadOnboardingSeen(),
 
-  startGame: (playerNames: string[], aiPlayerIds: string[] = []) => {
+  startGame: (playerNames: string[], aiPlayerIds: string[] = [], expansionRules: ExpansionRules = 'base') => {
     const configs = buildPlayerConfigs(playerNames);
     const seed = Math.floor(Math.random() * 2147483647);
-    const gameState = createInitialGameState(configs, seed);
+    const gameState = createInitialGameState(configs, seed, expansionRules);
     set({
       gameState,
       liveGameState: gameState,
@@ -172,6 +175,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       aiPlayerIds,
       lastPlayerNames: [...playerNames],
       lastAiPlayerIds: [...aiPlayerIds],
+      lastExpansionRules: expansionRules,
       lastPlacedSettlementVertexId: null,
       selectedAction: null,
       isAIThinking: false,
@@ -183,11 +187,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   restartGame: () => {
-    const { lastPlayerNames, lastAiPlayerIds } = get();
+    const { lastPlayerNames, lastAiPlayerIds, lastExpansionRules } = get();
     if (lastPlayerNames.length === 0) return;
     const configs = buildPlayerConfigs(lastPlayerNames);
     const seed = Math.floor(Math.random() * 2147483647);
-    const gameState = createInitialGameState(configs, seed);
+    const gameState = createInitialGameState(configs, seed, lastExpansionRules);
     set({
       gameState,
       liveGameState: gameState,
@@ -335,6 +339,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState: rebasedState,
       liveGameState: rebasedState,
       initialGameState: rebasedState,
+      lastExpansionRules: rebasedState.expansionRules,
       isReplayMode: false,
       timelineIndex: null,
       selectedAction: null,
@@ -369,6 +374,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       initialGameState: initialState,
       aiPlayerIds: [...snapshot.aiPlayerIds],
       lastAiPlayerIds: [...snapshot.aiPlayerIds],
+      lastExpansionRules: state.expansionRules,
       lastPlayerNames: state.players.map(p => p.name),
       isReplayMode: false,
       timelineIndex: null,

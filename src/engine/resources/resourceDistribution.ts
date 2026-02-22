@@ -1,6 +1,12 @@
 import type { GameState } from '../../state/gameState';
-import type { PlayerState, ResourceCards, ResourceType } from '../../state/playerState';
-import type { ResourceGains } from '../../state/gameState';
+import type {
+  PlayerState,
+  ResourceCards,
+  ResourceType,
+  CommodityCards,
+  CommodityType,
+} from '../../state/playerState';
+import type { ResourceGains, DistributionCards } from '../../state/gameState';
 
 export function addResources(player: PlayerState, resources: Partial<ResourceCards>): PlayerState {
   const updated: ResourceCards = { ...player.resources };
@@ -33,15 +39,62 @@ export function hasResources(player: PlayerState, resources: Partial<ResourceCar
   return true;
 }
 
+export function addCommodities(player: PlayerState, commodities: Partial<CommodityCards>): PlayerState {
+  const updated: CommodityCards = { ...player.commodities };
+  for (const [key, val] of Object.entries(commodities)) {
+    if (val) {
+      updated[key as CommodityType] = (updated[key as CommodityType] ?? 0) + val;
+    }
+  }
+  return { ...player, commodities: updated };
+}
+
+export function removeCommodities(
+  player: PlayerState,
+  commodities: Partial<CommodityCards>
+): PlayerState | null {
+  if (!hasCommodities(player, commodities)) return null;
+  const updated: CommodityCards = { ...player.commodities };
+  for (const [key, val] of Object.entries(commodities)) {
+    if (val) {
+      updated[key as CommodityType] = (updated[key as CommodityType] ?? 0) - val;
+    }
+  }
+  return { ...player, commodities: updated };
+}
+
+export function hasCommodities(player: PlayerState, commodities: Partial<CommodityCards>): boolean {
+  for (const [key, val] of Object.entries(commodities)) {
+    if (val && (player.commodities[key as CommodityType] ?? 0) < val) return false;
+  }
+  return true;
+}
+
 export function totalResources(player: PlayerState): number {
   return Object.values(player.resources).reduce((sum, n) => sum + n, 0);
+}
+
+type GainKey = keyof (ResourceCards & CommodityCards);
+
+function commodityForResource(resource: ResourceType): CommodityType | null {
+  if (resource === 'sheep') return 'cloth';
+  if (resource === 'ore') return 'coin';
+  if (resource === 'wheat') return 'paper';
+  return null;
+}
+
+function incrementGain(gains: DistributionCards, key: GainKey, amount: number): DistributionCards {
+  return {
+    ...gains,
+    [key]: (gains[key] ?? 0) + amount,
+  };
 }
 
 export function distributeResources(state: GameState, diceTotal: number): GameState {
   if (diceTotal === 7) return { ...state, lastDistribution: null };
 
-  // Build a map of playerId -> resources to add
-  const gains: Map<string, Partial<ResourceCards>> = new Map();
+  // Build a map of playerId -> distributed cards (resources + commodities in C&K mode)
+  const gains: Map<string, DistributionCards> = new Map();
 
   for (const hex of state.board.graph.hexes) {
     if (hex.numberToken !== diceTotal) continue;
@@ -52,7 +105,7 @@ export function distributeResources(state: GameState, diceTotal: number): GameSt
 
     if (hex.resource === 'desert') continue;
 
-    const resource = hex.resource as ResourceType;
+    const resourceType = hex.resource as ResourceType;
     const hexKey = `${hex.coord.q},${hex.coord.r}`;
 
     // Get vertices for this hex
@@ -65,13 +118,23 @@ export function distributeResources(state: GameState, diceTotal: number): GameSt
       const building = state.board.buildings[vertexId];
       if (!building) continue;
 
-      const amount = building.type === 'city' ? 2 : 1;
       const pid = building.playerId;
       const current = gains.get(pid) ?? {};
-      gains.set(pid, {
-        ...current,
-        [resource]: ((current[resource] ?? 0) + amount),
-      });
+      if (building.type === 'settlement') {
+        gains.set(pid, incrementGain(current, resourceType, 1));
+        continue;
+      }
+
+      // City production differs in C&K mode for wheat/ore/sheep hexes.
+      if (state.expansionRules === 'cities_and_knights') {
+        const commodity = commodityForResource(resourceType);
+        if (commodity) {
+          gains.set(pid, incrementGain(incrementGain(current, resourceType, 1), commodity, 1));
+          continue;
+        }
+      }
+
+      gains.set(pid, incrementGain(current, resourceType, 2));
     }
     void hexKey;
   }
@@ -80,7 +143,20 @@ export function distributeResources(state: GameState, diceTotal: number): GameSt
   const updatedPlayers = state.players.map(player => {
     const playerGains = gains.get(player.id);
     if (!playerGains) return player;
-    return addResources(player, playerGains);
+
+    const resourceGains: Partial<ResourceCards> = {};
+    const commodityGains: Partial<CommodityCards> = {};
+    for (const [key, value] of Object.entries(playerGains)) {
+      if (!value) continue;
+      if (key === 'wood' || key === 'brick' || key === 'sheep' || key === 'wheat' || key === 'ore') {
+        resourceGains[key] = value;
+      } else if (key === 'cloth' || key === 'coin' || key === 'paper') {
+        commodityGains[key] = value;
+      }
+    }
+
+    const withResources = addResources(player, resourceGains);
+    return addCommodities(withResources, commodityGains);
   });
 
   const lastDistribution: ResourceGains = {};

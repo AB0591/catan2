@@ -59,6 +59,30 @@ describe('END_TURN', () => {
     const newState = dispatchAction(makeAction('END_TURN', 'p1'), playingState);
     expect(newState.turnPhase).toBe('preRoll');
   });
+
+  it('resets acted flag for ending player knights', () => {
+    const state = createInitialGameState([
+      { id: 'p1', name: 'Player 1', color: 'red' },
+      { id: 'p2', name: 'Player 2', color: 'blue' },
+    ], 42, 'cities_and_knights');
+    const vertexIds = Array.from(state.board.graph.vertices.keys());
+    const playingState = {
+      ...state,
+      phase: 'playing' as const,
+      turnPhase: 'postRoll' as const,
+      currentPlayerIndex: 0,
+      board: {
+        ...state.board,
+        knights: {
+          k1: { id: 'k1', ownerId: 'p1', vertexId: vertexIds[0], level: 1 as const, active: true, hasActedThisTurn: true },
+          k2: { id: 'k2', ownerId: 'p2', vertexId: vertexIds[1], level: 1 as const, active: true, hasActedThisTurn: true },
+        },
+      },
+    };
+    const newState = dispatchAction(makeAction('END_TURN', 'p1'), playingState);
+    expect(newState.board.knights.k1.hasActedThisTurn).toBe(false);
+    expect(newState.board.knights.k2.hasActedThisTurn).toBe(true);
+  });
 });
 
 describe('PLACE_SETTLEMENT during setup', () => {
@@ -139,5 +163,35 @@ describe('Setup completion', () => {
 
     expect(s.phase).toBe('playing');
     expect(s.turnPhase).toBe('preRoll');
+  });
+});
+
+describe('CK_IMPROVE_CITY', () => {
+  it('routes to city improvement reducer in C&K mode', () => {
+    const base = createInitialGameState([
+      { id: 'p1', name: 'Player 1', color: 'red' },
+      { id: 'p2', name: 'Player 2', color: 'blue' },
+    ], 42, 'cities_and_knights');
+
+    const cityVertexId = base.board.graph.vertices.keys().next().value as string;
+    const state = {
+      ...base,
+      phase: 'playing' as const,
+      turnPhase: 'postRoll' as const,
+      players: base.players.map(p => (p.id === 'p1'
+        ? { ...p, commodities: { cloth: 0, coin: 2, paper: 0 } }
+        : p)),
+      board: {
+        ...base.board,
+        buildings: {
+          ...base.board.buildings,
+          [cityVertexId]: { type: 'city' as const, playerId: 'p1' },
+        },
+      },
+    };
+
+    const after = dispatchAction(makeAction('CK_IMPROVE_CITY', 'p1', { area: 'politics' }), state);
+    expect(after.players[0].cityImprovements.politics).toBe(1);
+    expect(after.players[0].commodities.coin).toBe(1);
   });
 });

@@ -21,7 +21,14 @@ import {
 } from './ui/reasons/actionReasons';
 import type { VertexId, EdgeId } from './engine/board/boardTypes';
 import type { HexCoord } from './engine/board/hexGrid';
-import type { ResourceType } from './state/playerState';
+import type { ResourceType, ImprovementTrack } from './state/playerState';
+import type { DistributionCards, ExpansionRules, ProgressCard } from './state/gameState';
+import {
+  getDriveAwayRobberTargets,
+  getValidKnightBuildVertices,
+  getValidKnightMoveTargets,
+} from './engine/citiesAndKnights/knightActions';
+import { getValidCityWallVertices } from './engine/citiesAndKnights/cityWallActions';
 
 const PLAYER_CSS_COLORS: Record<string, string> = {
   red: '#ef4444',
@@ -38,7 +45,7 @@ function rollDie(): number {
   return Math.floor(Math.random() * 6) + 1;
 }
 
-function hasPositiveGains(gains: Partial<Record<ResourceType, number>> | null | undefined): boolean {
+function hasPositiveGains(gains: DistributionCards | null | undefined): boolean {
   return Object.values(gains ?? {}).some(v => (v ?? 0) > 0);
 }
 
@@ -52,6 +59,7 @@ function StartScreen({ showCoachmark, dismissCoachmark }: StartScreenProps) {
   const [playerNames, setPlayerNames] = useState(['Alice', 'Bob', 'Charlie', 'Dana']);
   const [numPlayers, setNumPlayers] = useState(2);
   const [aiFlags, setAiFlags] = useState([false, true, true, true]);
+  const [expansionRules, setExpansionRules] = useState<ExpansionRules>('base');
   const { startGame } = useGameStore();
 
   const handleStart = () => {
@@ -59,7 +67,7 @@ function StartScreen({ showCoachmark, dismissCoachmark }: StartScreenProps) {
     const aiIds = names
       .map((_, i) => `player_${i}`)
       .filter((_, i) => aiFlags[i]);
-    startGame(names, aiIds);
+    startGame(names, aiIds, expansionRules);
   };
 
   return (
@@ -80,6 +88,20 @@ function StartScreen({ showCoachmark, dismissCoachmark }: StartScreenProps) {
             {[2, 3, 4].map(n => (
               <option key={n} value={n}>{n} Players</option>
             ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 6, color: '#aaa', fontSize: 13 }}>
+            Ruleset
+          </label>
+          <select
+            value={expansionRules}
+            onChange={e => setExpansionRules(e.target.value as ExpansionRules)}
+            style={{ width: '100%', padding: '6px 10px', borderRadius: 4, background: '#222', color: '#fff', border: '1px solid #444' }}
+          >
+            <option value="base">Base Catan</option>
+            <option value="cities_and_knights">Cities &amp; Knights</option>
           </select>
         </div>
 
@@ -178,13 +200,16 @@ function GameBoard() {
 
   const [showTrade, setShowTrade] = useState(false);
   const [pendingKnightCardIndex, setPendingKnightCardIndex] = useState<number | null>(null);
+  const [selectedKnightId, setSelectedKnightId] = useState<string | null>(null);
+  const [knightMode, setKnightMode] = useState<'none' | 'build' | 'move' | 'driveRobber'>('none');
+  const [ckBuildCityWallMode, setCkBuildCityWallMode] = useState(false);
   const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
   const [debugInput, setDebugInput] = useState('');
   const [scenarioName, setScenarioName] = useState('');
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
 
   const currentPlayer = getCurrentPlayer();
-  const { vertices: validVertices, edges: validEdges } = getValidPlacements();
+  const { vertices: baseValidVertices, edges: validEdges } = getValidPlacements();
 
   useEffect(() => {
     if (!debugEnabled) return;
@@ -199,6 +224,37 @@ function GameBoard() {
   }, [debugEnabled]);
 
   if (!gameState) return null;
+
+  const ownedKnights = currentPlayer
+    ? Object.values(gameState.board.knights).filter(k => k.ownerId === currentPlayer.id)
+    : [];
+  const selectedKnight = selectedKnightId
+    ? (ownedKnights.find(k => k.id === selectedKnightId) ?? null)
+    : null;
+  const knightBuildVertices = currentPlayer ? getValidKnightBuildVertices(gameState, currentPlayer.id) : [];
+  const knightMoveVertices = selectedKnight ? getValidKnightMoveTargets(gameState, selectedKnight.id) : [];
+  const knightDriveTargets = selectedKnight ? getDriveAwayRobberTargets(gameState, selectedKnight.id) : [];
+  const cityWallVertices = currentPlayer ? getValidCityWallVertices(gameState, currentPlayer.id) : [];
+  const progressHand: ProgressCard[] = (
+    gameState.expansionRules === 'cities_and_knights' && gameState.ck && currentPlayer
+      ? (gameState.ck.progressHands[currentPlayer.id] ?? [])
+      : []
+  );
+  const metropolisByVertex: Record<string, 'politics' | 'science' | 'trade'> = {};
+  if (gameState.expansionRules === 'cities_and_knights' && gameState.ck) {
+    (['politics', 'science', 'trade'] as const).forEach(track => {
+      const cityVertexId = gameState.ck?.metropolises[track].cityVertexId;
+      if (cityVertexId) metropolisByVertex[cityVertexId] = track;
+    });
+  }
+
+  const validVertices = ckBuildCityWallMode
+    ? cityWallVertices
+    : knightMode === 'build'
+    ? knightBuildVertices
+    : knightMode === 'move'
+      ? knightMoveVertices
+      : baseValidVertices;
 
   const playerColors: Record<string, string> = {};
   for (const p of gameState.players) {
@@ -257,6 +313,39 @@ function GameBoard() {
       return;
     }
 
+    if (knightMode === 'build') {
+      dispatch({
+        type: 'CK_BUILD_KNIGHT',
+        playerId: currentPlayer.id,
+        payload: { vertexId },
+        timestamp: nextTimestamp(),
+      });
+      setKnightMode('none');
+      return;
+    }
+
+    if (ckBuildCityWallMode) {
+      dispatch({
+        type: 'CK_BUILD_CITY_WALL',
+        playerId: currentPlayer.id,
+        payload: { cityVertexId: vertexId },
+        timestamp: nextTimestamp(),
+      });
+      setCkBuildCityWallMode(false);
+      return;
+    }
+
+    if (knightMode === 'move' && selectedKnight) {
+      dispatch({
+        type: 'CK_MOVE_KNIGHT',
+        playerId: currentPlayer.id,
+        payload: { knightId: selectedKnight.id, toVertexId: vertexId },
+        timestamp: nextTimestamp(),
+      });
+      setKnightMode('none');
+      return;
+    }
+
     if (selectedAction === 'settlement') {
       dispatch({
         type: 'BUILD_SETTLEMENT',
@@ -274,6 +363,17 @@ function GameBoard() {
       });
       setSelectedAction(null);
     }
+  };
+
+  const handleKnightClick = (knightId: string) => {
+    if (!currentPlayer) return;
+    if (isReplayMode) return;
+    const knight = gameState.board.knights[knightId];
+    if (!knight || knight.ownerId !== currentPlayer.id) return;
+
+    setSelectedKnightId(prev => (prev === knightId ? null : knightId));
+    setKnightMode('none');
+    setCkBuildCityWallMode(false);
   };
 
   const handleEdgeClick = (edgeId: EdgeId) => {
@@ -310,6 +410,16 @@ function GameBoard() {
   const handleHexClick = (coord: HexCoord) => {
     if (!currentPlayer) return;
     if (isReplayMode) return;
+    if (knightMode === 'driveRobber' && selectedKnight) {
+      dispatch({
+        type: 'CK_DRIVE_AWAY_ROBBER',
+        playerId: currentPlayer.id,
+        payload: { knightId: selectedKnight.id, hexCoord: coord },
+        timestamp: nextTimestamp(),
+      });
+      setKnightMode('none');
+      return;
+    }
     if (pendingKnightCardIndex !== null) {
       dispatch({
         type: 'PLAY_KNIGHT',
@@ -354,13 +464,21 @@ function GameBoard() {
     });
     setSelectedAction(null);
     setPendingKnightCardIndex(null);
+    setSelectedKnightId(null);
+    setKnightMode('none');
+    setCkBuildCityWallMode(false);
   };
 
-  const validHexes: HexCoord[] = (!isReplayMode && (gameState.turnPhase === 'robber' || pendingKnightCardIndex !== null))
-    ? gameState.board.graph.hexes
+  const validHexes: HexCoord[] = (() => {
+    if (isReplayMode) return [];
+    if (knightMode === 'driveRobber') return knightDriveTargets;
+    if (gameState.turnPhase === 'robber' || pendingKnightCardIndex !== null) {
+      return gameState.board.graph.hexes
         .map(h => h.coord)
-        .filter(c => !(c.q === gameState.board.robberHex.q && c.r === gameState.board.robberHex.r))
-    : [];
+        .filter(c => !(c.q === gameState.board.robberHex.q && c.r === gameState.board.robberHex.r));
+    }
+    return [];
+  })();
 
   const distributionOverlayKey =
     gameState.turnPhase === 'postRoll' && gameState.lastDistribution && gameState.lastDiceRoll
@@ -390,6 +508,138 @@ function GameBoard() {
     city: getBuildDisabledReason('city', gameState, currentPlayer, isReplayMode) ?? undefined,
     devCard: getBuildDisabledReason('devCard', gameState, currentPlayer, isReplayMode) ?? undefined,
   } : {};
+
+  const improvementMeta: Record<ImprovementTrack, { label: string; icon: string; commodity: string }> = {
+    politics: { label: 'Politics', icon: '🔵', commodity: 'coin' },
+    science: { label: 'Science', icon: '🟢', commodity: 'paper' },
+    trade: { label: 'Trade', icon: '🟡', commodity: 'cloth' },
+  };
+
+  const getImproveCityDisabledReason = (track: ImprovementTrack): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (isReplayMode) return 'Replay mode active. Return to live play to improve cities.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== currentPlayer.id) return 'Not your turn.';
+
+    const level = currentPlayer.cityImprovements[track];
+    if (level >= 5) return 'Already at maximum level.';
+
+    const ownsCity = Object.values(gameState.board.buildings).some(
+      b => b.playerId === currentPlayer.id && b.type === 'city'
+    );
+    if (!ownsCity) return 'Build at least one city first.';
+
+    const cost = level + 1;
+    const commodity = improvementMeta[track].commodity as keyof typeof currentPlayer.commodities;
+    if ((currentPlayer.commodities[commodity] ?? 0) < cost) {
+      return `Need ${cost} ${commodity}.`;
+    }
+
+    return null;
+  };
+
+  const getBuildKnightDisabledReason = (): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (isReplayMode) return 'Replay mode active.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== currentPlayer.id) return 'Not your turn.';
+    if (currentPlayer.resources.sheep < 1 || currentPlayer.resources.ore < 1) return 'Need 1 sheep and 1 ore.';
+    if (knightBuildVertices.length === 0) return 'No valid vertex connected to your roads.';
+    return null;
+  };
+
+  const getActivateKnightDisabledReason = (): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (!selectedKnight) return 'Select one of your knights.';
+    if (selectedKnight.ownerId !== currentPlayer.id) return 'Select one of your knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (selectedKnight.active) return 'Knight is already active.';
+    if (currentPlayer.resources.wheat < 1) return 'Need 1 wheat.';
+    return null;
+  };
+
+  const getMoveKnightDisabledReason = (): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (!selectedKnight) return 'Select one of your knights.';
+    if (selectedKnight.ownerId !== currentPlayer.id) return 'Select one of your knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (!selectedKnight.active) return 'Knight must be active.';
+    if (selectedKnight.hasActedThisTurn) return 'Knight already acted this turn.';
+    if (knightMoveVertices.length === 0) return 'No valid adjacent destination.';
+    return null;
+  };
+
+  const getPromoteKnightDisabledReason = (): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (!selectedKnight) return 'Select one of your knights.';
+    if (selectedKnight.ownerId !== currentPlayer.id) return 'Select one of your knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (!selectedKnight.active) return 'Knight must be active.';
+    if (selectedKnight.hasActedThisTurn) return 'Knight already acted this turn.';
+    if (selectedKnight.level >= 3) return 'Knight is already mighty.';
+    const politics = currentPlayer.cityImprovements.politics;
+    if (selectedKnight.level === 1 && politics < 2) return 'Need Politics level 2 for strong knights.';
+    if (selectedKnight.level === 2 && politics < 4) return 'Need Politics level 4 for mighty knights.';
+    if (currentPlayer.commodities.coin < 1) return 'Need 1 coin.';
+    return null;
+  };
+
+  const getDriveRobberDisabledReason = (): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (gameState.phase !== 'playing') return 'Only available during playing phase.';
+    if (gameState.turnPhase !== 'preRoll' && gameState.turnPhase !== 'postRoll') return 'Only available in pre-roll or post-roll.';
+    if (!selectedKnight) return 'Select one of your knights.';
+    if (selectedKnight.ownerId !== currentPlayer.id) return 'Select one of your knights.';
+    if (!selectedKnight.active) return 'Knight must be active.';
+    if (selectedKnight.hasActedThisTurn) return 'Knight already acted this turn.';
+    if (knightDriveTargets.length === 0) return 'Knight is not adjacent to the robber.';
+    return null;
+  };
+
+  const getBuildCityWallDisabledReason = (): string | null => {
+    if (!currentPlayer) return 'No active player.';
+    if (isReplayMode) return 'Replay mode active.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== currentPlayer.id) return 'Not your turn.';
+    if (currentPlayer.resources.brick < 2) return 'Need 2 brick.';
+    if (cityWallVertices.length === 0) return 'No eligible city without a wall, or wall limit reached.';
+    return null;
+  };
+
+  const playProgressCard = (card: ProgressCard) => {
+    if (!currentPlayer) return;
+    const payload: Record<string, unknown> = { cardId: card.id };
+    if (card.type === 'resourceMonopoly' || card.type === 'merchantFleet') {
+      const selection = window.prompt('Choose resource: wood, brick, sheep, wheat, ore', 'wood');
+      if (!selection) return;
+      payload.resource = selection;
+    }
+    if (card.type === 'tradeMonopoly') {
+      const selection = window.prompt('Choose commodity: cloth, coin, paper', 'cloth');
+      if (!selection) return;
+      payload.commodity = selection;
+    }
+    if (card.type === 'spy') {
+      const opponents = gameState.players.filter(p => p.id !== currentPlayer.id);
+      if (opponents.length > 0) {
+        payload.targetPlayerId = opponents[0].id;
+      }
+    }
+
+    dispatch({
+      type: 'CK_PLAY_PROGRESS_CARD',
+      playerId: currentPlayer.id,
+      payload,
+      timestamp: nextTimestamp(),
+    });
+  };
 
   const activeCoachmark = (() => {
     if (onboardingSeen.firstTurn === false && gameState.phase === 'playing' && gameState.turnPhase === 'preRoll') {
@@ -425,6 +675,10 @@ function GameBoard() {
     gameState.phase === 'setup'
       ? `Setup: ${setupPhaseLabel}`
       : isReplayMode ? '⏪ Replay mode'
+      : ckBuildCityWallMode ? '🧱 Select a city for city wall'
+      : knightMode === 'build' ? '🛡️ Select a vertex to build a knight'
+      : knightMode === 'move' ? '🧭 Select destination vertex for knight'
+      : knightMode === 'driveRobber' ? '🦹 Select new robber hex'
       : pendingKnightCardIndex !== null ? '⚔️ Select a hex for Knight'
       : gameState.turnPhase === 'preRoll' ? 'Roll dice to start your turn'
       : gameState.turnPhase === 'robber' ? '🦹 Move the Robber'
@@ -441,6 +695,10 @@ function GameBoard() {
         {gameState.players.map((player, i) => {
           const gains = gameState.lastDistribution?.[player.id];
           const showOverlay = distributionOverlayKey !== null && hasPositiveGains(gains);
+          const cityWallCount = Object.values(gameState.board.cityWalls).filter(ownerId => ownerId === player.id).length;
+          const metropolisCount = gameState.expansionRules === 'cities_and_knights' && gameState.ck
+            ? (['politics', 'science', 'trade'] as const).filter(track => gameState.ck?.metropolises[track].playerId === player.id).length
+            : 0;
           return (
             <div
               key={player.id}
@@ -456,6 +714,9 @@ function GameBoard() {
                   player={player}
                   isCurrentPlayer={i === gameState.currentPlayerIndex}
                   isLocalPlayer={true}
+                  expansionRules={gameState.expansionRules}
+                  cityWallCount={cityWallCount}
+                  metropolisCount={metropolisCount}
                 />
               </div>
               <div
@@ -548,9 +809,13 @@ function GameBoard() {
           validVertices={validVertices}
           validEdges={validEdges}
           validHexes={validHexes}
+          selectedKnightId={selectedKnight?.id ?? null}
+          validKnightIds={!isReplayMode ? ownedKnights.map(k => k.id) : []}
+          metropolisByVertex={metropolisByVertex}
           onVertexClick={handleVertexClick}
           onEdgeClick={handleEdgeClick}
-          onHexClick={gameState.turnPhase === 'robber' || pendingKnightCardIndex !== null ? handleHexClick : undefined}
+          onKnightClick={handleKnightClick}
+          onHexClick={gameState.turnPhase === 'robber' || pendingKnightCardIndex !== null || knightMode === 'driveRobber' ? handleHexClick : undefined}
           playerColors={playerColors}
         />
 
@@ -587,6 +852,18 @@ function GameBoard() {
             🤖 AI is thinking…
           </div>
         )}
+        {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
+          <div style={{ marginBottom: 8, padding: 8, borderRadius: 6, background: 'rgba(59,130,246,0.12)', border: '1px solid #3b82f6' }}>
+            <div style={{ fontSize: 11, color: '#93c5fd', marginBottom: 4 }}>
+              Barbarians: {gameState.ck.barbarians.position}/{gameState.ck.barbarians.stepsToAttack}
+            </div>
+            {gameState.ck.lastBarbarianAttack && (
+              <div style={{ fontSize: 10, color: '#bfdbfe' }}>
+                Attack {gameState.ck.lastBarbarianAttack.defenseStrength >= gameState.ck.lastBarbarianAttack.cityStrength ? 'defended' : 'breached'}
+              </div>
+            )}
+          </div>
+        )}
         <DiceRoll
           lastRoll={gameState.lastDiceRoll}
           canRoll={canRoll}
@@ -600,9 +877,21 @@ function GameBoard() {
               player={currentPlayer}
               turnPhase={gameState.turnPhase}
               disabledReasons={buildDisabledReasons}
-              onBuildSettlement={() => setSelectedAction(selectedAction === 'settlement' ? null : 'settlement')}
-              onBuildRoad={() => setSelectedAction(selectedAction === 'road' ? null : 'road')}
-              onBuildCity={() => setSelectedAction(selectedAction === 'city' ? null : 'city')}
+              onBuildSettlement={() => {
+                setSelectedAction(selectedAction === 'settlement' ? null : 'settlement');
+                setKnightMode('none');
+                setCkBuildCityWallMode(false);
+              }}
+              onBuildRoad={() => {
+                setSelectedAction(selectedAction === 'road' ? null : 'road');
+                setKnightMode('none');
+                setCkBuildCityWallMode(false);
+              }}
+              onBuildCity={() => {
+                setSelectedAction(selectedAction === 'city' ? null : 'city');
+                setKnightMode('none');
+                setCkBuildCityWallMode(false);
+              }}
               onBuyDevCard={() => {
                 dispatch({
                   type: 'BUY_DEVELOPMENT_CARD',
@@ -613,11 +902,269 @@ function GameBoard() {
               }}
             />
 
+            {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
+              <div style={{ paddingBottom: 8, borderBottom: '1px solid #333', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>City Improvements</div>
+                {(['politics', 'science', 'trade'] as const).map(track => {
+                  const info = improvementMeta[track];
+                  const level = currentPlayer.cityImprovements[track];
+                  const reason = getImproveCityDisabledReason(track);
+                  const canImprove = reason === null;
+                  const nextCost = level < 5 ? level + 1 : null;
+
+                  return (
+                    <div key={track} style={{ marginBottom: 6 }}>
+                      <button
+                        onClick={() => {
+                          dispatch({
+                            type: 'CK_IMPROVE_CITY',
+                            playerId: currentPlayer.id,
+                            payload: { area: track },
+                            timestamp: nextTimestamp(),
+                          });
+                        }}
+                        disabled={!canImprove}
+                        title={reason ?? `Upgrade to level ${level + 1} (${nextCost} ${info.commodity})`}
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderRadius: 5,
+                          border: 'none',
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          cursor: canImprove ? 'pointer' : 'not-allowed',
+                          textAlign: 'left',
+                          background: canImprove ? '#334155' : '#333',
+                          color: canImprove ? '#fff' : '#777',
+                        }}
+                      >
+                        {info.icon} {info.label} Lv {level}/5
+                        {nextCost ? <span style={{ fontWeight: 400 }}> · Cost: {nextCost} {info.commodity}</span> : <span style={{ fontWeight: 400 }}> · Maxed</span>}
+                      </button>
+                      {!canImprove && reason && (
+                        <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{reason}</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
+              <div style={{ paddingBottom: 8, borderBottom: '1px solid #333', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>City Walls</div>
+                <button
+                  onClick={() => {
+                    setCkBuildCityWallMode(prev => !prev);
+                    setSelectedAction(null);
+                    setKnightMode('none');
+                    setPendingKnightCardIndex(null);
+                  }}
+                  disabled={getBuildCityWallDisabledReason() !== null}
+                  title={getBuildCityWallDisabledReason() ?? 'Build city wall (2 brick)'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    cursor: getBuildCityWallDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getBuildCityWallDisabledReason() === null ? '#7c2d12' : '#333',
+                    color: getBuildCityWallDisabledReason() === null ? '#ffedd5' : '#777',
+                  }}
+                >
+                  🧱 Build City Wall
+                </button>
+              </div>
+            )}
+
+            {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
+              <div style={{ paddingBottom: 8, borderBottom: '1px solid #333', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>Knights</div>
+                <button
+                  onClick={() => {
+                    setKnightMode(prev => (prev === 'build' ? 'none' : 'build'));
+                    setSelectedAction(null);
+                    setPendingKnightCardIndex(null);
+                    setCkBuildCityWallMode(false);
+                  }}
+                  disabled={getBuildKnightDisabledReason() !== null}
+                  title={getBuildKnightDisabledReason() ?? 'Build knight (1 sheep + 1 ore)'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    cursor: getBuildKnightDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getBuildKnightDisabledReason() === null ? '#1f4a3d' : '#333',
+                    color: getBuildKnightDisabledReason() === null ? '#eafff7' : '#777',
+                    marginBottom: 6,
+                  }}
+                >
+                  🛡️ Build Knight
+                </button>
+                {selectedKnight && (
+                  <div style={{ fontSize: 10, color: '#a5b4fc', marginBottom: 6 }}>
+                    Selected {selectedKnight.id} · Lv {selectedKnight.level} · {selectedKnight.active ? 'Active' : 'Inactive'}{selectedKnight.hasActedThisTurn ? ' · Acted' : ''}
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    if (!selectedKnight) return;
+                    dispatch({
+                      type: 'CK_ACTIVATE_KNIGHT',
+                      playerId: currentPlayer.id,
+                      payload: { knightId: selectedKnight.id },
+                      timestamp: nextTimestamp(),
+                    });
+                  }}
+                  disabled={getActivateKnightDisabledReason() !== null}
+                  title={getActivateKnightDisabledReason() ?? 'Activate selected knight (1 wheat)'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    cursor: getActivateKnightDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getActivateKnightDisabledReason() === null ? '#374151' : '#333',
+                    color: getActivateKnightDisabledReason() === null ? '#fff' : '#777',
+                    marginBottom: 6,
+                  }}
+                >
+                  ⚡ Activate Knight
+                </button>
+                <button
+                  onClick={() => {
+                    setKnightMode(prev => (prev === 'move' ? 'none' : 'move'));
+                    setSelectedAction(null);
+                    setPendingKnightCardIndex(null);
+                    setCkBuildCityWallMode(false);
+                  }}
+                  disabled={getMoveKnightDisabledReason() !== null}
+                  title={getMoveKnightDisabledReason() ?? 'Move selected knight'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    cursor: getMoveKnightDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getMoveKnightDisabledReason() === null ? '#374151' : '#333',
+                    color: getMoveKnightDisabledReason() === null ? '#fff' : '#777',
+                    marginBottom: 6,
+                  }}
+                >
+                  🧭 Move Knight
+                </button>
+                <button
+                  onClick={() => {
+                    if (!selectedKnight) return;
+                    dispatch({
+                      type: 'CK_PROMOTE_KNIGHT',
+                      playerId: currentPlayer.id,
+                      payload: { knightId: selectedKnight.id },
+                      timestamp: nextTimestamp(),
+                    });
+                  }}
+                  disabled={getPromoteKnightDisabledReason() !== null}
+                  title={getPromoteKnightDisabledReason() ?? 'Promote selected knight (1 coin)'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    cursor: getPromoteKnightDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getPromoteKnightDisabledReason() === null ? '#374151' : '#333',
+                    color: getPromoteKnightDisabledReason() === null ? '#fff' : '#777',
+                    marginBottom: 6,
+                  }}
+                >
+                  ⬆️ Promote Knight
+                </button>
+                <button
+                  onClick={() => {
+                    setKnightMode(prev => (prev === 'driveRobber' ? 'none' : 'driveRobber'));
+                    setSelectedAction(null);
+                    setPendingKnightCardIndex(null);
+                    setCkBuildCityWallMode(false);
+                  }}
+                  disabled={getDriveRobberDisabledReason() !== null}
+                  title={getDriveRobberDisabledReason() ?? 'Drive robber with selected knight'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    cursor: getDriveRobberDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getDriveRobberDisabledReason() === null ? '#374151' : '#333',
+                    color: getDriveRobberDisabledReason() === null ? '#fff' : '#777',
+                  }}
+                >
+                  🦹 Drive Away Robber
+                </button>
+              </div>
+            )}
+
             {selectedAction && (
               <div style={{ fontSize: 12, color: '#ffff00', marginBottom: 8, padding: '4px 8px', background: 'rgba(255,255,0,0.1)', borderRadius: 4 }}>
                 Click {selectedAction === 'road' ? 'edge' : 'vertex'} on board
                 <button
                   onClick={() => setSelectedAction(null)}
+                  style={{ marginLeft: 6, background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 12 }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {ckBuildCityWallMode && (
+              <div style={{ fontSize: 12, color: '#fdba74', marginBottom: 8, padding: '4px 8px', background: 'rgba(251,146,60,0.12)', borderRadius: 4 }}>
+                Click a highlighted city to build a city wall
+                <button
+                  onClick={() => setCkBuildCityWallMode(false)}
+                  style={{ marginLeft: 6, background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 12 }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {knightMode === 'build' && (
+              <div style={{ fontSize: 12, color: '#a7f3d0', marginBottom: 8, padding: '4px 8px', background: 'rgba(16,185,129,0.12)', borderRadius: 4 }}>
+                Click a highlighted vertex to build a knight
+                <button
+                  onClick={() => setKnightMode('none')}
+                  style={{ marginLeft: 6, background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 12 }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {knightMode === 'move' && (
+              <div style={{ fontSize: 12, color: '#bfdbfe', marginBottom: 8, padding: '4px 8px', background: 'rgba(59,130,246,0.12)', borderRadius: 4 }}>
+                Click a highlighted destination to move the selected knight
+                <button
+                  onClick={() => setKnightMode('none')}
+                  style={{ marginLeft: 6, background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 12 }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {knightMode === 'driveRobber' && (
+              <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 8, padding: '4px 8px', background: 'rgba(239,68,68,0.12)', borderRadius: 4 }}>
+                Click a hex to move the robber with the selected knight
+                <button
+                  onClick={() => setKnightMode('none')}
                   style={{ marginLeft: 6, background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 12 }}
                 >
                   ✕
@@ -691,6 +1238,39 @@ function GameBoard() {
               </div>
             )}
 
+            {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
+              <div style={{ marginTop: 8, borderTop: '1px solid #333', paddingTop: 8 }}>
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>
+                  Progress Cards ({progressHand.length})
+                </div>
+                {progressHand.length === 0 && (
+                  <div style={{ fontSize: 10, color: '#888' }}>No progress cards in hand.</div>
+                )}
+                {progressHand.map(card => (
+                  <button
+                    key={card.id}
+                    onClick={() => playProgressCard(card)}
+                    disabled={gameState.turnPhase !== 'postRoll'}
+                    title={`Play ${card.type} (${card.deck})`}
+                    style={{
+                      width: '100%',
+                      marginBottom: 4,
+                      padding: '4px 6px',
+                      borderRadius: 4,
+                      border: '1px solid #374151',
+                      background: gameState.turnPhase === 'postRoll' ? '#111827' : '#1f2937',
+                      color: gameState.turnPhase === 'postRoll' ? '#dbeafe' : '#6b7280',
+                      fontSize: 11,
+                      textAlign: 'left',
+                      cursor: gameState.turnPhase === 'postRoll' ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    {card.deck.slice(0, 3).toUpperCase()} · {card.type}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Dev card hand */}
             <div style={{ marginTop: 8, borderTop: '1px solid #333', paddingTop: 8 }}>
               <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>Dev Cards</div>
@@ -706,6 +1286,8 @@ function GameBoard() {
                   if (card.type === 'knight') {
                     setPendingKnightCardIndex(cardIndex);
                     setSelectedAction(null);
+                    setKnightMode('none');
+                    setCkBuildCityWallMode(false);
                     return;
                   }
                   const actionMap: Record<string, string> = {

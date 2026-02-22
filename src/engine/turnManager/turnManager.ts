@@ -21,6 +21,19 @@ import {
   handlePlayYearOfPlenty,
   handlePlayMonopoly,
 } from '../developmentCards/devCardActions';
+import { handleImproveCity } from '../citiesAndKnights/improvementActions';
+import {
+  handleBuildKnight,
+  handleActivateKnight,
+  handleMoveKnight,
+  handlePromoteKnight,
+  handleDriveAwayRobber,
+  resetKnightActionsForPlayer,
+} from '../citiesAndKnights/knightActions';
+import { handleBuildCityWall } from '../citiesAndKnights/cityWallActions';
+import { handlePlayProgressCard } from '../citiesAndKnights/progressCardActions';
+import { advanceBarbariansAfterRoll } from '../citiesAndKnights/barbarianActions';
+import { updateMetropolises } from '../citiesAndKnights/ckMeta';
 import { updateVictoryState } from '../victory/victoryEngine';
 import { handleTradeBank, handleTradePlayer } from '../trading/tradingActions';
 
@@ -48,19 +61,23 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
         newState = { ...newState, lastDiceRoll: diceRoll, turnPhase: 'postRoll' };
         newState = distributeResources(newState, total);
       }
+      newState = advanceBarbariansAfterRoll(newState);
       break;
     }
 
     case 'END_TURN': {
       const nextIndex = (state.currentPlayerIndex + 1) % state.players.length;
+      const endingPlayerId = state.players[state.currentPlayerIndex]?.id;
       // Reset playedThisTurn on all dev cards
       const resetPlayers = state.players.map(p => ({
         ...p,
         developmentCards: p.developmentCards.map(c => ({ ...c, playedThisTurn: false })),
       }));
+      const board = endingPlayerId ? resetKnightActionsForPlayer(state.board, endingPlayerId) : state.board;
       newState = {
         ...newState,
         players: resetPlayers,
+        board,
         currentPlayerIndex: nextIndex,
         turnPhase: 'preRoll',
         lastDiceRoll: null,
@@ -192,9 +209,51 @@ export function dispatchAction(action: GameAction, state: GameState): GameState 
       break;
     }
 
+    case 'CK_IMPROVE_CITY': {
+      newState = handleImproveCity(newState, action);
+      break;
+    }
+
+    case 'CK_BUILD_KNIGHT': {
+      newState = handleBuildKnight(newState, action);
+      break;
+    }
+
+    case 'CK_ACTIVATE_KNIGHT': {
+      newState = handleActivateKnight(newState, action);
+      break;
+    }
+
+    case 'CK_MOVE_KNIGHT': {
+      newState = handleMoveKnight(newState, action);
+      break;
+    }
+
+    case 'CK_PROMOTE_KNIGHT': {
+      newState = handlePromoteKnight(newState, action);
+      break;
+    }
+
+    case 'CK_DRIVE_AWAY_ROBBER': {
+      newState = handleDriveAwayRobber(newState, action);
+      break;
+    }
+
+    case 'CK_BUILD_CITY_WALL': {
+      newState = handleBuildCityWall(newState, action);
+      break;
+    }
+
+    case 'CK_PLAY_PROGRESS_CARD': {
+      newState = handlePlayProgressCard(newState, action);
+      break;
+    }
+
     default:
       break;
   }
+
+  newState = updateMetropolises(newState);
 
   // Update victory state after any action that could affect VP
   if (newState.phase === 'playing' || newState.phase === 'finished') {

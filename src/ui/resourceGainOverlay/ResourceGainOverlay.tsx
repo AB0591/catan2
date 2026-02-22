@@ -1,9 +1,17 @@
 import type { FC } from 'react';
-import type { ResourceType } from '../../state/playerState';
-import { RESOURCE_ICONS, RESOURCE_NAMES } from '../resourceMeta';
+import type { ResourceType, CommodityType } from '../../state/playerState';
+import type { DistributionCards } from '../../state/gameState';
+import {
+  RESOURCE_ICONS,
+  RESOURCE_NAMES,
+  COMMODITY_ICONS,
+  COMMODITY_NAMES,
+} from '../resourceMeta';
+
+type GainCardType = ResourceType | CommodityType;
 
 type ResourceGainOverlayProps = {
-  gains: Partial<Record<ResourceType, number>> | null | undefined;
+  gains: DistributionCards | null | undefined;
   durationMs?: number;
 };
 
@@ -13,7 +21,10 @@ export const ResourceGainOverlay: FC<ResourceGainOverlayProps> = ({
   gains,
   durationMs = 8000,
 }) => {
-  const entries = (Object.entries(gains ?? {}) as [ResourceType, number][])
+  const cardIcons: Record<GainCardType, string> = { ...RESOURCE_ICONS, ...COMMODITY_ICONS };
+  const cardNames: Record<GainCardType, string> = { ...RESOURCE_NAMES, ...COMMODITY_NAMES };
+
+  const entries = (Object.entries(gains ?? {}) as [GainCardType, number][])
     .filter(([, amount]) => (amount ?? 0) > 0);
 
   if (entries.length === 0) return null;
@@ -59,7 +70,7 @@ export const ResourceGainOverlay: FC<ResourceGainOverlayProps> = ({
           {entries.map(([resource, amount], index) => (
             <div
               key={resource}
-              title={`${amount} ${RESOURCE_NAMES[resource]}`}
+              title={`${amount} ${cardNames[resource]}`}
               style={{
                 width: 116,
                 height: 148,
@@ -75,7 +86,7 @@ export const ResourceGainOverlay: FC<ResourceGainOverlayProps> = ({
                 color: '#fff',
               }}
             >
-              <span style={{ fontSize: 44, lineHeight: 1 }}>{RESOURCE_ICONS[resource]}</span>
+              <span style={{ fontSize: 44, lineHeight: 1 }}>{cardIcons[resource]}</span>
               <span style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>+{amount}</span>
             </div>
           ))}

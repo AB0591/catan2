@@ -27,6 +27,8 @@ export function serializeState(state: GameState): string {
  */
 export function deserializeState(json: string): GameState {
   const raw = JSON.parse(json) as {
+    expansionRules?: 'base' | 'cities_and_knights';
+    ck?: GameState['ck'];
     board: {
       graph: {
         vertices: Record<string, Vertex>;
@@ -40,11 +42,33 @@ export function deserializeState(json: string): GameState {
 
   const vertices = new Map(Object.entries(raw.board.graph.vertices));
   const edges = new Map(Object.entries(raw.board.graph.edges));
+  const expansionRules = raw.expansionRules === 'cities_and_knights' ? 'cities_and_knights' : 'base';
+  const defaultCk: NonNullable<GameState['ck']> = {
+    barbarians: { position: 0, stepsToAttack: 7 },
+    metropolises: {
+      politics: { playerId: null, cityVertexId: null },
+      science: { playerId: null, cityVertexId: null },
+      trade: { playerId: null, cityVertexId: null },
+    },
+    progressHands: {},
+    pending: { type: 'NONE', payload: null },
+    progressDecks: { politics: [], science: [], trade: [] },
+    lastBarbarianAttack: null,
+  };
 
   return {
     ...raw,
+    expansionRules,
+    ck: expansionRules === 'cities_and_knights'
+      ? {
+        ...defaultCk,
+        ...(raw.ck ?? {}),
+      }
+      : null,
     board: {
       ...raw.board,
+      knights: (raw.board as { knights?: GameState['board']['knights'] }).knights ?? {},
+      cityWalls: (raw.board as { cityWalls?: GameState['board']['cityWalls'] }).cityWalls ?? {},
       graph: {
         ...raw.board.graph,
         vertices,
@@ -204,6 +228,59 @@ export function validateAction(
       }
       if (state.turnPhase !== 'postRoll') {
         return { valid: false, reason: 'Can only trade in postRoll phase' };
+      }
+      return { valid: true };
+    }
+
+    case 'CK_IMPROVE_CITY': {
+      if (state.expansionRules !== 'cities_and_knights' || !state.ck) {
+        return { valid: false, reason: 'City improvements are only available in Cities & Knights games' };
+      }
+      if (state.phase !== 'playing') {
+        return { valid: false, reason: 'Can only improve cities during playing phase' };
+      }
+      if (currentPlayer?.id !== action.playerId) {
+        return { valid: false, reason: 'Not your turn' };
+      }
+      if (state.turnPhase !== 'postRoll') {
+        return { valid: false, reason: 'Can only improve cities in postRoll phase' };
+      }
+      return { valid: true };
+    }
+
+    case 'CK_BUILD_KNIGHT':
+    case 'CK_ACTIVATE_KNIGHT':
+    case 'CK_MOVE_KNIGHT':
+    case 'CK_PROMOTE_KNIGHT':
+    case 'CK_BUILD_CITY_WALL':
+    case 'CK_PLAY_PROGRESS_CARD': {
+      if (state.expansionRules !== 'cities_and_knights' || !state.ck) {
+        return { valid: false, reason: 'Action is only available in Cities & Knights games' };
+      }
+      if (state.phase !== 'playing') {
+        return { valid: false, reason: 'Can only use this action during playing phase' };
+      }
+      if (currentPlayer?.id !== action.playerId) {
+        return { valid: false, reason: 'Not your turn' };
+      }
+      if (state.turnPhase !== 'postRoll') {
+        return { valid: false, reason: 'Can only use this action in postRoll phase' };
+      }
+      return { valid: true };
+    }
+
+    case 'CK_DRIVE_AWAY_ROBBER': {
+      if (state.expansionRules !== 'cities_and_knights' || !state.ck) {
+        return { valid: false, reason: 'Knight robber actions are only available in Cities & Knights games' };
+      }
+      if (state.phase !== 'playing') {
+        return { valid: false, reason: 'Can only use knight actions during playing phase' };
+      }
+      if (currentPlayer?.id !== action.playerId) {
+        return { valid: false, reason: 'Not your turn' };
+      }
+      if (state.turnPhase !== 'postRoll' && state.turnPhase !== 'preRoll') {
+        return { valid: false, reason: 'Can only drive away robber during preRoll or postRoll' };
       }
       return { valid: true };
     }

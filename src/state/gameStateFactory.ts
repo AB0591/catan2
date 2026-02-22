@@ -5,6 +5,13 @@ import { createBoardState } from './boardState';
 import { createBoard } from '../engine/board';
 import type { Port } from './boardState';
 import type { DevelopmentCardType } from './playerState';
+import type {
+  ExpansionRules,
+  CkState,
+  ProgressCard,
+  ProgressCardType,
+  ProgressDeckType,
+} from './gameState';
 import { createStandardPorts } from '../engine/trading/tradingActions';
 
 // Mulberry32 seeded RNG (same as board)
@@ -40,9 +47,64 @@ export type PlayerConfig = {
   color: PlayerColor;
 };
 
+function createProgressDeck(
+  rng: () => number,
+  deck: ProgressDeckType,
+  cardTypes: ProgressCardType[]
+): ProgressCard[] {
+  const cards = cardTypes.map((type, idx) => ({
+    id: `${deck}_${type}_${idx}`,
+    deck,
+    type,
+  }));
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  return cards;
+}
+
+function createInitialCkState(playerIds: string[], rng: () => number): CkState {
+  const politicsCards: ProgressCardType[] = [
+    'warlord', 'constitution', 'spy', 'deserter',
+    'warlord', 'constitution', 'spy', 'deserter',
+  ];
+  const scienceCards: ProgressCardType[] = [
+    'irrigation', 'mining', 'engineer', 'chemist',
+    'irrigation', 'mining', 'engineer', 'chemist',
+  ];
+  const tradeCards: ProgressCardType[] = [
+    'tradeMonopoly', 'resourceMonopoly', 'merchantGift', 'merchantFleet',
+    'tradeMonopoly', 'resourceMonopoly', 'merchantGift', 'merchantFleet',
+  ];
+
+  const progressHands: Record<string, ProgressCard[]> = {};
+  for (const playerId of playerIds) {
+    progressHands[playerId] = [];
+  }
+
+  return {
+    barbarians: { position: 0, stepsToAttack: 7 },
+    metropolises: {
+      politics: { playerId: null, cityVertexId: null },
+      science: { playerId: null, cityVertexId: null },
+      trade: { playerId: null, cityVertexId: null },
+    },
+    progressHands,
+    pending: { type: 'NONE', payload: null },
+    progressDecks: {
+      politics: createProgressDeck(rng, 'politics', politicsCards),
+      science: createProgressDeck(rng, 'science', scienceCards),
+      trade: createProgressDeck(rng, 'trade', tradeCards),
+    },
+    lastBarbarianAttack: null,
+  };
+}
+
 export function createInitialGameState(
   playerConfigs: PlayerConfig[],
-  seed: number
+  seed: number,
+  expansionRules: ExpansionRules = 'base'
 ): GameState {
   const rng = mulberry32(seed);
   const board = createBoard(seed);
@@ -60,6 +122,10 @@ export function createInitialGameState(
     id: `game_${seed}_${Date.now()}`,
     phase: 'setup',
     turnPhase: 'setupPlacement',
+    expansionRules,
+    ck: expansionRules === 'cities_and_knights'
+      ? createInitialCkState(players.map(p => p.id), rng)
+      : null,
     players,
     currentPlayerIndex: 0,
     board: boardState,

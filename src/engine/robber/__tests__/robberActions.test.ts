@@ -189,6 +189,27 @@ describe('getPlayersWhoMustDiscard', () => {
     const mustDiscard = getPlayersWhoMustDiscard(state);
     expect(mustDiscard).not.toContain('p1');
   });
+
+  it('in C&K mode, city walls increase discard threshold', () => {
+    const base = createInitialGameState([
+      { id: 'p1', name: 'Player 1', color: 'red' },
+      { id: 'p2', name: 'Player 2', color: 'blue' },
+    ], 42, 'cities_and_knights');
+    const cityVertexId = base.board.graph.vertices.keys().next().value as string;
+    const state: GameState = {
+      ...base,
+      board: {
+        ...base.board,
+        buildings: { [cityVertexId]: { type: 'city', playerId: 'p1' } },
+        cityWalls: { [cityVertexId]: 'p1' },
+      },
+      players: base.players.map(p =>
+        p.id === 'p1' ? { ...p, resources: { wood: 9, brick: 0, sheep: 0, wheat: 0, ore: 0 } } : p
+      ),
+    };
+    const mustDiscard = getPlayersWhoMustDiscard(state);
+    expect(mustDiscard).not.toContain('p1'); // threshold is 9 with one wall
+  });
 });
 
 describe('requiredDiscardCount', () => {

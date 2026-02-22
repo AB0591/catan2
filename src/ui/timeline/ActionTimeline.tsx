@@ -8,10 +8,21 @@ const CATEGORY_ORDER: ActionCategory[] = ['setup', 'build', 'trade', 'robber', '
 
 function categorizeAction(type: GameAction['type']): ActionCategory {
   if (type === 'PLACE_SETTLEMENT' || type === 'PLACE_ROAD' || type === 'PLACE_CITY') return 'setup';
-  if (type === 'BUILD_SETTLEMENT' || type === 'BUILD_ROAD' || type === 'BUILD_CITY' || type === 'BUY_DEVELOPMENT_CARD') return 'build';
+  if (
+    type === 'BUILD_SETTLEMENT'
+    || type === 'BUILD_ROAD'
+    || type === 'BUILD_CITY'
+    || type === 'BUY_DEVELOPMENT_CARD'
+    || type === 'CK_BUILD_KNIGHT'
+    || type === 'CK_ACTIVATE_KNIGHT'
+    || type === 'CK_MOVE_KNIGHT'
+    || type === 'CK_PROMOTE_KNIGHT'
+    || type === 'CK_IMPROVE_CITY'
+    || type === 'CK_BUILD_CITY_WALL'
+  ) return 'build';
   if (type === 'TRADE_BANK' || type === 'TRADE_PORT' || type === 'TRADE_PLAYER') return 'trade';
-  if (type === 'MOVE_ROBBER' || type === 'STEAL_RESOURCE' || type === 'DISCARD_RESOURCES') return 'robber';
-  if (type === 'PLAY_KNIGHT' || type === 'PLAY_ROAD_BUILDING' || type === 'PLAY_YEAR_OF_PLENTY' || type === 'PLAY_MONOPOLY') return 'dev';
+  if (type === 'MOVE_ROBBER' || type === 'STEAL_RESOURCE' || type === 'DISCARD_RESOURCES' || type === 'CK_DRIVE_AWAY_ROBBER') return 'robber';
+  if (type === 'PLAY_KNIGHT' || type === 'PLAY_ROAD_BUILDING' || type === 'PLAY_YEAR_OF_PLENTY' || type === 'PLAY_MONOPOLY' || type === 'CK_PLAY_PROGRESS_CARD') return 'dev';
   return 'turn';
 }
 

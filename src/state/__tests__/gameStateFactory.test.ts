@@ -58,6 +58,22 @@ describe('createInitialGameState', () => {
     const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.winner).toBeNull();
   });
+
+  it('defaults to base expansion rules', () => {
+    const state = createInitialGameState(threePlayerConfigs, 42);
+    expect(state.expansionRules).toBe('base');
+    expect(state.ck).toBeNull();
+  });
+
+  it('initializes C&K state when cities_and_knights mode is selected', () => {
+    const state = createInitialGameState(threePlayerConfigs, 42, 'cities_and_knights');
+    expect(state.expansionRules).toBe('cities_and_knights');
+    expect(state.ck).not.toBeNull();
+    expect(state.ck?.barbarians.position).toBe(0);
+    expect(state.ck?.barbarians.stepsToAttack).toBe(7);
+    expect(state.ck?.progressHands.p1).toEqual([]);
+    expect(state.ck?.progressDecks.politics.length).toBeGreaterThan(0);
+  });
 });
 
 describe('serializeGameState', () => {

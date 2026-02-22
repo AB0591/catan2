@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/gameState';
 import type { VertexId, EdgeId } from '../board/boardTypes';
+import { metropolisPointsForPlayer } from '../citiesAndKnights/ckMeta';
 
 export function calculateTotalVP(state: GameState, playerId: string): number {
   const player = state.players.find(p => p.id === playerId);
@@ -8,7 +9,11 @@ export function calculateTotalVP(state: GameState, playerId: string): number {
   const settlementsPlaced = 5 - player.settlements;
   const citiesPlaced = 4 - player.cities;
   const vpCards = player.developmentCards.filter(c => c.type === 'victoryPoint').length;
-  const specialPoints = (player.hasLargestArmy ? 2 : 0) + (player.hasLongestRoad ? 2 : 0);
+  const specialPoints =
+    (player.hasLargestArmy ? 2 : 0)
+    + (player.hasLongestRoad ? 2 : 0)
+    + player.ckVictoryPoints
+    + metropolisPointsForPlayer(state, playerId);
 
   return settlementsPlaced + citiesPlaced * 2 + vpCards + specialPoints;
 }

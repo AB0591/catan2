@@ -1,8 +1,16 @@
 import type { PlayerState } from './playerState';
 import type { BoardState } from './boardState';
-import type { ResourceType, DevelopmentCardType, ResourceCards } from './playerState';
+import type {
+  ResourceType,
+  DevelopmentCardType,
+  ResourceCards,
+  CommodityCards,
+  ImprovementTrack,
+} from './playerState';
 
-export type ResourceGains = Record<string, Partial<ResourceCards>>;
+export type DistributionCards = Partial<ResourceCards & CommodityCards>;
+
+export type ResourceGains = Record<string, DistributionCards>;
 
 export type StealEvent = {
   thiefId: string;
@@ -29,6 +37,62 @@ export type DiceRoll = {
   total: number;
 };
 
+export type ExpansionRules = 'base' | 'cities_and_knights';
+
+export type ProgressDeckType = 'politics' | 'science' | 'trade';
+
+export type ProgressCardType =
+  | 'warlord'
+  | 'constitution'
+  | 'spy'
+  | 'deserter'
+  | 'irrigation'
+  | 'mining'
+  | 'engineer'
+  | 'chemist'
+  | 'tradeMonopoly'
+  | 'resourceMonopoly'
+  | 'merchantGift'
+  | 'merchantFleet';
+
+export type ProgressCard = {
+  id: string;
+  deck: ProgressDeckType;
+  type: ProgressCardType;
+};
+
+export type BarbarianAttackSummary = {
+  cityStrength: number;
+  defenseStrength: number;
+  contributions: Record<string, number>;
+  losers: string[];
+  rewarded: string[];
+  citiesDowngraded: Array<{ playerId: string; vertexId: string }>;
+};
+
+export type CkState = {
+  barbarians: {
+    position: number;
+    stepsToAttack: number;
+  };
+  metropolises: {
+    politics: { playerId: string | null; cityVertexId: string | null };
+    science: { playerId: string | null; cityVertexId: string | null };
+    trade: { playerId: string | null; cityVertexId: string | null };
+  };
+  progressHands: Record<string, ProgressCard[]>;
+  pending: {
+    type: 'NONE' | 'BARBARIAN_ATTACK';
+    payload: Record<string, unknown> | null;
+  };
+  progressDecks: {
+    politics: ProgressCard[];
+    science: ProgressCard[];
+    trade: ProgressCard[];
+  };
+  lastBarbarianAttack: BarbarianAttackSummary | null;
+};
+
 export type ActionType =
   | 'ROLL_DICE'
   | 'PLACE_SETTLEMENT'
@@ -48,6 +112,14 @@ export type ActionType =
   | 'TRADE_PORT'
   | 'TRADE_PLAYER'
   | 'DISCARD_RESOURCES'
+  | 'CK_IMPROVE_CITY'
+  | 'CK_BUILD_KNIGHT'
+  | 'CK_ACTIVATE_KNIGHT'
+  | 'CK_MOVE_KNIGHT'
+  | 'CK_PROMOTE_KNIGHT'
+  | 'CK_DRIVE_AWAY_ROBBER'
+  | 'CK_BUILD_CITY_WALL'
+  | 'CK_PLAY_PROGRESS_CARD'
   | 'END_TURN';
 
 export type GameAction = {
@@ -61,6 +133,8 @@ export type GameState = {
   id: string;
   phase: GamePhase;
   turnPhase: TurnPhase;
+  expansionRules: ExpansionRules;
+  ck: CkState | null;
   players: PlayerState[];
   currentPlayerIndex: number;
   board: BoardState;
@@ -83,3 +157,4 @@ export type GameState = {
 
 // Suppress unused import warning — ResourceType is re-exported via index
 export type { ResourceType };
+export type { ImprovementTrack };

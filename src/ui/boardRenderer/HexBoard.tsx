@@ -28,8 +28,12 @@ export type HexBoardProps = {
   boardState: BoardState;
   validVertices?: VertexId[];
   validEdges?: EdgeId[];
+  selectedKnightId?: string | null;
+  validKnightIds?: string[];
+  metropolisByVertex?: Record<string, 'politics' | 'science' | 'trade'>;
   onVertexClick?: (vertexId: VertexId) => void;
   onEdgeClick?: (edgeId: EdgeId) => void;
+  onKnightClick?: (knightId: string) => void;
   onHexClick?: (coord: HexCoord) => void;
   validHexes?: HexCoord[];
   playerColors: Record<string, string>;
@@ -95,8 +99,12 @@ export const HexBoard: React.FC<HexBoardProps> = ({
   boardState,
   validVertices = [],
   validEdges = [],
+  selectedKnightId = null,
+  validKnightIds = [],
+  metropolisByVertex = {},
   onVertexClick,
   onEdgeClick,
+  onKnightClick,
   onHexClick,
   validHexes = [],
   playerColors,
@@ -105,6 +113,7 @@ export const HexBoard: React.FC<HexBoardProps> = ({
 
   const validVertexSet = useMemo(() => new Set(validVertices), [validVertices]);
   const validEdgeSet = useMemo(() => new Set(validEdges), [validEdges]);
+  const validKnightSet = useMemo(() => new Set(validKnightIds), [validKnightIds]);
 
   const getPlayerColor = (playerId: string) =>
     playerColors[playerId] ?? PLAYER_COLORS[playerId] ?? '#fff';
@@ -260,6 +269,30 @@ export const HexBoard: React.FC<HexBoardProps> = ({
                 strokeWidth={2}
               />
             )}
+            {building?.type === 'city' && boardState.cityWalls[vertexId] && (
+              <rect
+                x={pos[0] - 13}
+                y={pos[1] - 13}
+                width={26}
+                height={26}
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="4 2"
+              />
+            )}
+            {metropolisByVertex[vertexId] && (
+              <text
+                x={pos[0]}
+                y={pos[1] - 14}
+                textAnchor="middle"
+                fontSize={12}
+                fontWeight="bold"
+                fill={metropolisByVertex[vertexId] === 'politics' ? '#60a5fa' : metropolisByVertex[vertexId] === 'science' ? '#4ade80' : '#facc15'}
+              >
+                ★
+              </text>
+            )}
             {isValid && !building && (
               <circle
                 cx={pos[0]}
@@ -270,6 +303,44 @@ export const HexBoard: React.FC<HexBoardProps> = ({
                 strokeWidth={2}
               />
             )}
+          </g>
+        );
+      })}
+
+      {/* Knights */}
+      {Object.values(boardState.knights).map(knight => {
+        const pos = vertexPosMap.get(knight.vertexId);
+        if (!pos) return null;
+        const isSelected = selectedKnightId === knight.id;
+        const isValidKnight = validKnightSet.has(knight.id);
+        const strokeColor = knight.active ? '#93c5fd' : '#9ca3af';
+        const fillColor = getPlayerColor(knight.ownerId);
+        const ringColor = isSelected ? '#fde047' : isValidKnight ? '#facc15' : strokeColor;
+        return (
+          <g
+            key={knight.id}
+            onClick={() => onKnightClick && onKnightClick(knight.id)}
+            style={{ cursor: onKnightClick ? 'pointer' : 'default' }}
+          >
+            <circle
+              cx={pos[0]}
+              cy={pos[1]}
+              r={12}
+              fill={fillColor}
+              stroke={ringColor}
+              strokeWidth={isSelected || isValidKnight ? 3 : 2}
+              opacity={knight.active ? 1 : 0.72}
+            />
+            <text
+              x={pos[0]}
+              y={pos[1] + 4}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight="bold"
+              fill="#111827"
+            >
+              {knight.level}
+            </text>
           </g>
         );
       })}

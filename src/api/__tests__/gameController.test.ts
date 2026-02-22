@@ -111,6 +111,67 @@ describe('gameController', () => {
     expect(result.reason).toBeDefined();
   });
 
+  it('validateAction rejects CK_IMPROVE_CITY in base mode', () => {
+    const state = makeState();
+    const playingState: GameState = {
+      ...state,
+      phase: 'playing',
+      turnPhase: 'postRoll',
+      currentPlayerIndex: 0,
+    };
+    const action = makeAction('CK_IMPROVE_CITY', 'p1', { area: 'politics' });
+    const result = validateAction(action, playingState);
+    expect(result.valid).toBe(false);
+  });
+
+  it('validateAction accepts CK_IMPROVE_CITY in C&K postRoll', () => {
+    const state = createInitialGameState([
+      { id: 'p1', name: 'Alice', color: 'red' },
+      { id: 'p2', name: 'Bob', color: 'blue' },
+    ], 42, 'cities_and_knights');
+    const playingState: GameState = {
+      ...state,
+      phase: 'playing',
+      turnPhase: 'postRoll',
+      currentPlayerIndex: 0,
+    };
+    const action = makeAction('CK_IMPROVE_CITY', 'p1', { area: 'politics' });
+    const result = validateAction(action, playingState);
+    expect(result.valid).toBe(true);
+  });
+
+  it('validateAction accepts CK_BUILD_KNIGHT in C&K postRoll', () => {
+    const state = createInitialGameState([
+      { id: 'p1', name: 'Alice', color: 'red' },
+      { id: 'p2', name: 'Bob', color: 'blue' },
+    ], 42, 'cities_and_knights');
+    const playingState: GameState = {
+      ...state,
+      phase: 'playing',
+      turnPhase: 'postRoll',
+      currentPlayerIndex: 0,
+    };
+    const action = makeAction('CK_BUILD_KNIGHT', 'p1', { vertexId: 'v0' });
+    const result = validateAction(action, playingState);
+    expect(result.valid).toBe(true);
+  });
+
+  it('validateAction accepts CK_PLAY_PROGRESS_CARD in C&K postRoll', () => {
+    const state = createInitialGameState([
+      { id: 'p1', name: 'Alice', color: 'red' },
+      { id: 'p2', name: 'Bob', color: 'blue' },
+    ], 42, 'cities_and_knights');
+    const playingState: GameState = {
+      ...state,
+      phase: 'playing',
+      turnPhase: 'postRoll',
+      currentPlayerIndex: 0,
+    };
+    const action = makeAction('CK_PLAY_PROGRESS_CARD', 'p1', { cardId: 'science_irrigation_0' });
+    const result = validateAction(action, playingState);
+    expect(result.valid).toBe(true);
+  });
+
   it('Middleware chain is called in order', () => {
     const callOrder: string[] = [];
 

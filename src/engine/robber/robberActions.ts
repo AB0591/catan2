@@ -3,6 +3,7 @@ import type { GameAction } from '../../state/gameState';
 import type { PlayerState, ResourceType } from '../../state/playerState';
 import type { HexCoord } from '../board/hexGrid';
 import { totalResources, removeResources, addResources } from '../resources/resourceDistribution';
+import { getCityWallDiscardThreshold } from '../citiesAndKnights/cityWallActions';
 
 function mulberry32(seed: number) {
   return function () {
@@ -15,7 +16,7 @@ function mulberry32(seed: number) {
 
 export function getPlayersWhoMustDiscard(state: GameState): string[] {
   return state.players
-    .filter(p => totalResources(p) > 7)
+    .filter(p => totalResources(p) > getCityWallDiscardThreshold(state, p.id))
     .map(p => p.id);
 }
 

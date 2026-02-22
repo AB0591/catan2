@@ -9,11 +9,14 @@ describe('createPlayer', () => {
     expect(player.name).toBe('Alice');
     expect(player.color).toBe('red');
     expect(player.resources).toEqual({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+    expect(player.commodities).toEqual({ cloth: 0, coin: 0, paper: 0 });
+    expect(player.cityImprovements).toEqual({ politics: 0, science: 0, trade: 0 });
     expect(player.settlements).toBe(5);
     expect(player.cities).toBe(4);
     expect(player.roads).toBe(15);
     expect(player.developmentCards).toEqual([]);
     expect(player.victoryPoints).toBe(0);
+    expect(player.ckVictoryPoints).toBe(0);
     expect(player.knightsPlayed).toBe(0);
     expect(player.hasLargestArmy).toBe(false);
     expect(player.hasLongestRoad).toBe(false);

@@ -27,6 +27,13 @@ describe('gameStore', () => {
     expect(gameState!.players[2].name).toBe('Charlie');
   });
 
+  it('startGame applies selected expansion rules', () => {
+    useGameStore.getState().startGame(['Alice', 'Bob'], [], 'cities_and_knights');
+    const { gameState } = useGameStore.getState();
+    expect(gameState?.expansionRules).toBe('cities_and_knights');
+    expect(gameState?.ck).not.toBeNull();
+  });
+
   it('dispatch updates game state', () => {
     useGameStore.getState().startGame(['Alice', 'Bob']);
     const { gameState: initial } = useGameStore.getState();

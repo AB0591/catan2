@@ -16,6 +16,13 @@ function make2PlayerState() {
   ], 42);
 }
 
+function make2PlayerCkState() {
+  return createInitialGameState([
+    { id: 'p1', name: 'Player 1', color: 'red' },
+    { id: 'p2', name: 'Player 2', color: 'blue' },
+  ], 42, 'cities_and_knights');
+}
+
 /** Find a hex with a given numberToken and return a vertex adjacent to it */
 function findVertexForHex(state: GameState, numberToken: number): { vertexId: string; resource: string } | null {
   for (const hex of state.board.graph.hexes) {
@@ -26,6 +33,21 @@ function findVertexForHex(state: GameState, numberToken: number): { vertexId: st
         if (vertex.adjacentHexes.some(h => h.q === hex.coord.q && h.r === hex.coord.r)) {
           return { vertexId, resource: hex.resource };
         }
+      }
+    }
+  }
+  return null;
+}
+
+function findVertexForResource(
+  state: GameState,
+  resource: 'sheep' | 'wheat' | 'ore'
+): { vertexId: string; numberToken: number } | null {
+  for (const hex of state.board.graph.hexes) {
+    if (hex.resource !== resource || hex.numberToken === null) continue;
+    for (const [vertexId, vertex] of state.board.graph.vertices) {
+      if (vertex.adjacentHexes.some(h => h.q === hex.coord.q && h.r === hex.coord.r)) {
+        return { vertexId, numberToken: hex.numberToken };
       }
     }
   }
@@ -142,6 +164,40 @@ describe('distributeResources', () => {
     const resource = hex8.resource as import("../../../state/playerState").ResourceType;
     expect(after.players[0].resources[resource]).toBeGreaterThanOrEqual(1);
     expect(after.players[1].resources[resource]).toBeGreaterThanOrEqual(1);
+  });
+
+  it('in C&K mode, a city on commodity hex gains 1 resource + 1 commodity', () => {
+    const state = make2PlayerCkState();
+    const found = findVertexForResource(state, 'ore') ?? findVertexForResource(state, 'wheat') ?? findVertexForResource(state, 'sheep');
+    if (!found) return;
+
+    const targetHex = state.board.graph.hexes.find(
+      h => h.numberToken === found.numberToken
+        && (h.resource === 'ore' || h.resource === 'wheat' || h.resource === 'sheep')
+    );
+    if (!targetHex) return;
+
+    const stateWithCity: GameState = {
+      ...state,
+      board: {
+        ...state.board,
+        buildings: { ...state.board.buildings, [found.vertexId]: { type: 'city', playerId: 'p1' } },
+      },
+    };
+
+    const after = distributeResources(stateWithCity, found.numberToken);
+    const p1 = after.players[0];
+
+    if (targetHex.resource === 'ore') {
+      expect(p1.resources.ore).toBeGreaterThanOrEqual(1);
+      expect(p1.commodities.coin).toBeGreaterThanOrEqual(1);
+    } else if (targetHex.resource === 'wheat') {
+      expect(p1.resources.wheat).toBeGreaterThanOrEqual(1);
+      expect(p1.commodities.paper).toBeGreaterThanOrEqual(1);
+    } else {
+      expect(p1.resources.sheep).toBeGreaterThanOrEqual(1);
+      expect(p1.commodities.cloth).toBeGreaterThanOrEqual(1);
+    }
   });
 });
 

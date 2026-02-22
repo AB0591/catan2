@@ -22,6 +22,14 @@ describe('createBoardState', () => {
     expect(Object.keys(boardState.roads)).toHaveLength(0);
   });
 
+  it('starts with empty knights', () => {
+    expect(boardState.knights).toEqual({});
+  });
+
+  it('starts with empty cityWalls', () => {
+    expect(boardState.cityWalls).toEqual({});
+  });
+
   it('robberHex matches board desert hex', () => {
     expect(boardState.robberHex).toEqual(board.robberHex);
     // robberHex should be the desert tile
