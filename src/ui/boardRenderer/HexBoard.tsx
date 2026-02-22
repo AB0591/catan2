@@ -290,6 +290,29 @@ export const HexBoard: React.FC<HexBoardProps> = ({
                 strokeWidth={2}
               />
             )}
+            {isValid && building?.type === 'city' && (
+              <>
+                <rect
+                  x={pos[0] - 14}
+                  y={pos[1] - 14}
+                  width={28}
+                  height={28}
+                  fill="rgba(255,255,0,0.22)"
+                  stroke="none"
+                  data-testid={`valid-city-glow-${vertexId}`}
+                />
+                <rect
+                  x={pos[0] - 14}
+                  y={pos[1] - 14}
+                  width={28}
+                  height={28}
+                  fill="none"
+                  stroke="#ffff00"
+                  strokeWidth={3}
+                  data-testid={`valid-city-ring-${vertexId}`}
+                />
+              </>
+            )}
             {building?.type === 'city' && boardState.cityWalls[vertexId] && (
               <rect
                 x={pos[0] - 13}

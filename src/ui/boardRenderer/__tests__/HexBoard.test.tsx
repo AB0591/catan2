@@ -95,4 +95,33 @@ describe('HexBoard valid vertex highlighting', () => {
 
     expect(screen.queryByTestId(`valid-upgrade-ring-${vertexId}`)).not.toBeInTheDocument();
   });
+
+  it('renders city highlight ring for valid city vertices', () => {
+    const { state, playerColors } = makeBoardState();
+    const vertexId = Array.from(state.board.graph.vertices.keys())[0];
+    expect(vertexId).toBeDefined();
+    if (!vertexId) return;
+
+    const boardWithCity = {
+      ...state.board,
+      buildings: {
+        ...state.board.buildings,
+        [vertexId]: {
+          type: 'city' as const,
+          playerId: 'player_0',
+        },
+      },
+    };
+
+    render(
+      <HexBoard
+        boardState={boardWithCity}
+        validVertices={[vertexId]}
+        playerColors={playerColors}
+      />
+    );
+
+    expect(screen.getByTestId(`valid-city-ring-${vertexId}`)).toBeInTheDocument();
+    expect(screen.queryByTestId(`valid-empty-${vertexId}`)).not.toBeInTheDocument();
+  });
 });
