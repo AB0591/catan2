@@ -258,6 +258,27 @@ export const HexBoard: React.FC<HexBoardProps> = ({
                 strokeWidth={2}
               />
             )}
+            {isValid && building?.type === 'settlement' && (
+              <>
+                <circle
+                  cx={pos[0]}
+                  cy={pos[1]}
+                  r={13}
+                  fill="rgba(255,255,0,0.22)"
+                  stroke="none"
+                  data-testid={`valid-upgrade-glow-${vertexId}`}
+                />
+                <circle
+                  cx={pos[0]}
+                  cy={pos[1]}
+                  r={13}
+                  fill="none"
+                  stroke="#ffff00"
+                  strokeWidth={3}
+                  data-testid={`valid-upgrade-ring-${vertexId}`}
+                />
+              </>
+            )}
             {building?.type === 'city' && (
               <rect
                 x={pos[0] - 9}
@@ -301,6 +322,7 @@ export const HexBoard: React.FC<HexBoardProps> = ({
                 fill="rgba(255,255,0,0.7)"
                 stroke="#ffff00"
                 strokeWidth={2}
+                data-testid={`valid-empty-${vertexId}`}
               />
             )}
           </g>
