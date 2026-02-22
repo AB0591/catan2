@@ -4,7 +4,7 @@ import type { ExpansionRules } from '../state/gameState';
 import type { PlayerState } from '../state/playerState';
 import type { VertexId, EdgeId } from '../engine/board/boardTypes';
 import { dispatchAction } from '../engine/turnManager/turnManager';
-import { createInitialGameState } from '../state/gameStateFactory';
+import { createInitialGameState, getDefaultVictoryPointTarget } from '../state/gameStateFactory';
 import type { PlayerConfig } from '../state/gameStateFactory';
 import {
   getValidSettlementPlacements,
@@ -119,13 +119,19 @@ type GameStore = {
   lastAiPlayerIds: string[];
   isAIThinking: boolean;
   lastExpansionRules: ExpansionRules;
+  lastVictoryPointTarget: number;
   debugEnabled: boolean;
   lastDebugMessage: string | null;
   isReplayMode: boolean;
   timelineIndex: number | null;
   savedScenarios: ScenarioSnapshot[];
   onboardingSeen: OnboardingSeen;
-  startGame: (playerNames: string[], aiPlayerIds?: string[], expansionRules?: ExpansionRules) => void;
+  startGame: (
+    playerNames: string[],
+    aiPlayerIds?: string[],
+    expansionRules?: ExpansionRules,
+    victoryPointTarget?: number
+  ) => void;
   restartGame: () => void;
   dispatch: (action: GameAction) => void;
   dispatchLive: (action: GameAction) => void;
@@ -157,6 +163,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastAiPlayerIds: [],
   isAIThinking: false,
   lastExpansionRules: 'base',
+  lastVictoryPointTarget: getDefaultVictoryPointTarget('base'),
   debugEnabled: DEBUG_ENABLED,
   lastDebugMessage: null,
   isReplayMode: false,
@@ -164,10 +171,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   savedScenarios: loadSavedScenarios(),
   onboardingSeen: loadOnboardingSeen(),
 
-  startGame: (playerNames: string[], aiPlayerIds: string[] = [], expansionRules: ExpansionRules = 'base') => {
+  startGame: (
+    playerNames: string[],
+    aiPlayerIds: string[] = [],
+    expansionRules: ExpansionRules = 'base',
+    victoryPointTarget?: number
+  ) => {
     const configs = buildPlayerConfigs(playerNames);
     const seed = Math.floor(Math.random() * 2147483647);
-    const gameState = createInitialGameState(configs, seed, expansionRules);
+    const gameState = createInitialGameState(configs, seed, expansionRules, victoryPointTarget);
     set({
       gameState,
       liveGameState: gameState,
@@ -176,6 +188,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastPlayerNames: [...playerNames],
       lastAiPlayerIds: [...aiPlayerIds],
       lastExpansionRules: expansionRules,
+      lastVictoryPointTarget: gameState.victoryPointTarget,
       lastPlacedSettlementVertexId: null,
       selectedAction: null,
       isAIThinking: false,
@@ -187,11 +200,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   restartGame: () => {
-    const { lastPlayerNames, lastAiPlayerIds, lastExpansionRules } = get();
+    const { lastPlayerNames, lastAiPlayerIds, lastExpansionRules, lastVictoryPointTarget } = get();
     if (lastPlayerNames.length === 0) return;
     const configs = buildPlayerConfigs(lastPlayerNames);
     const seed = Math.floor(Math.random() * 2147483647);
-    const gameState = createInitialGameState(configs, seed, lastExpansionRules);
+    const gameState = createInitialGameState(configs, seed, lastExpansionRules, lastVictoryPointTarget);
     set({
       gameState,
       liveGameState: gameState,
@@ -342,6 +355,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       liveGameState: rebasedState,
       initialGameState: rebasedState,
       lastExpansionRules: rebasedState.expansionRules,
+      lastVictoryPointTarget: rebasedState.victoryPointTarget,
       isReplayMode: false,
       timelineIndex: null,
       selectedAction: null,
@@ -377,6 +391,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       aiPlayerIds: [...snapshot.aiPlayerIds],
       lastAiPlayerIds: [...snapshot.aiPlayerIds],
       lastExpansionRules: state.expansionRules,
+      lastVictoryPointTarget: state.victoryPointTarget,
       lastPlayerNames: state.players.map(p => p.name),
       isReplayMode: false,
       timelineIndex: null,

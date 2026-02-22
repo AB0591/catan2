@@ -74,12 +74,12 @@ describe('calculateTotalVP', () => {
 });
 
 describe('checkVictory', () => {
-  it('returns null when no player has 10 VP', () => {
+  it('returns null when no player has reached the configured target', () => {
     const state = playingState(make2PlayerState());
     expect(checkVictory(state)).toBeNull();
   });
 
-  it('returns playerId when player reaches 10 VP', () => {
+  it('returns playerId when player reaches the configured target', () => {
     const base = playingState(make2PlayerState());
     // 5 settlements placed (0 remaining) = 5 VP, 4 cities placed (0 remaining) = 8 VP, + 2 largest army = 10
     const state: GameState = {
@@ -92,6 +92,22 @@ describe('checkVictory', () => {
       } : p),
     };
     expect(checkVictory(state)).toBe('p1');
+  });
+
+  it('uses custom victory point target', () => {
+    const base = playingState(make2PlayerState());
+    const state: GameState = {
+      ...base,
+      victoryPointTarget: 12,
+      players: base.players.map(p => p.id === 'p1' ? {
+        ...p,
+        settlements: 3,
+        cities: 1,
+        hasLargestArmy: true,
+      } : p),
+    };
+    expect(calculateTotalVP(state, 'p1')).toBe(10);
+    expect(checkVictory(state)).toBeNull();
   });
 });
 
@@ -226,7 +242,7 @@ describe('updateLongestRoad', () => {
 });
 
 describe('updateVictoryState', () => {
-  it('sets winner when player hits 10 VP', () => {
+  it('sets winner when player hits configured VP target', () => {
     const base = playingState(make2PlayerState());
     const state: GameState = {
       ...base,
@@ -241,5 +257,23 @@ describe('updateVictoryState', () => {
     const updated = updateVictoryState(state);
     expect(updated.winner).toBe('p1');
     expect(updated.phase).toBe('finished');
+  });
+
+  it('does not set winner below custom target', () => {
+    const base = playingState(make2PlayerState());
+    const state: GameState = {
+      ...base,
+      victoryPointTarget: 12,
+      players: base.players.map(p => p.id === 'p1' ? {
+        ...p,
+        settlements: 3,
+        cities: 1,
+        hasLargestArmy: true,
+      } : p),
+    };
+
+    const updated = updateVictoryState(state);
+    expect(updated.winner).toBeNull();
+    expect(updated.phase).not.toBe('finished');
   });
 });

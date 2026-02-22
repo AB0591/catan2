@@ -63,16 +63,30 @@ describe('createInitialGameState', () => {
     const state = createInitialGameState(threePlayerConfigs, 42);
     expect(state.expansionRules).toBe('base');
     expect(state.ck).toBeNull();
+    expect(state.victoryPointTarget).toBe(10);
   });
 
   it('initializes C&K state when cities_and_knights mode is selected', () => {
     const state = createInitialGameState(threePlayerConfigs, 42, 'cities_and_knights');
     expect(state.expansionRules).toBe('cities_and_knights');
     expect(state.ck).not.toBeNull();
+    expect(state.victoryPointTarget).toBe(13);
     expect(state.ck?.barbarians.position).toBe(0);
     expect(state.ck?.barbarians.stepsToAttack).toBe(7);
     expect(state.ck?.progressHands.p1).toEqual([]);
     expect(state.ck?.progressDecks.politics.length).toBeGreaterThan(0);
+  });
+
+  it('uses custom victory point target when provided', () => {
+    const state = createInitialGameState(threePlayerConfigs, 42, 'base', 12);
+    expect(state.victoryPointTarget).toBe(12);
+  });
+
+  it('clamps victory point target to supported range', () => {
+    const low = createInitialGameState(threePlayerConfigs, 42, 'base', 3);
+    const high = createInitialGameState(threePlayerConfigs, 42, 'base', 20);
+    expect(low.victoryPointTarget).toBe(6);
+    expect(high.victoryPointTarget).toBe(16);
   });
 });
 

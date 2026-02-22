@@ -25,6 +25,7 @@ import type { VertexId, EdgeId } from './engine/board/boardTypes';
 import type { HexCoord } from './engine/board/hexGrid';
 import type { CommodityType, ResourceType, ImprovementTrack } from './state/playerState';
 import type { DistributionCards, ExpansionRules, ProgressCard } from './state/gameState';
+import { getDefaultVictoryPointTarget } from './state/gameStateFactory';
 import {
   getDriveAwayRobberTargets,
   getValidKnightBuildVertices,
@@ -71,6 +72,7 @@ function StartScreen({ showCoachmark, dismissCoachmark }: StartScreenProps) {
   const [numPlayers, setNumPlayers] = useState(2);
   const [aiFlags, setAiFlags] = useState([false, true, true, true]);
   const [expansionRules, setExpansionRules] = useState<ExpansionRules>('base');
+  const [victoryPointTarget, setVictoryPointTarget] = useState<number>(getDefaultVictoryPointTarget('base'));
   const { startGame } = useGameStore();
 
   const handleStart = () => {
@@ -78,7 +80,7 @@ function StartScreen({ showCoachmark, dismissCoachmark }: StartScreenProps) {
     const aiIds = names
       .map((_, i) => `player_${i}`)
       .filter((_, i) => aiFlags[i]);
-    startGame(names, aiIds, expansionRules);
+    startGame(names, aiIds, expansionRules, victoryPointTarget);
   };
 
   return (
@@ -108,11 +110,30 @@ function StartScreen({ showCoachmark, dismissCoachmark }: StartScreenProps) {
           </label>
           <select
             value={expansionRules}
-            onChange={e => setExpansionRules(e.target.value as ExpansionRules)}
+            onChange={e => {
+              const nextRules = e.target.value as ExpansionRules;
+              setExpansionRules(nextRules);
+              setVictoryPointTarget(getDefaultVictoryPointTarget(nextRules));
+            }}
             style={{ width: '100%', padding: '6px 10px', borderRadius: 4, background: '#222', color: '#fff', border: '1px solid #444' }}
           >
             <option value="base">Base Catan</option>
             <option value="cities_and_knights">Cities &amp; Knights</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 6, color: '#aaa', fontSize: 13 }}>
+            Victory Points to Win
+          </label>
+          <select
+            value={victoryPointTarget}
+            onChange={e => setVictoryPointTarget(Number(e.target.value))}
+            style={{ width: '100%', padding: '6px 10px', borderRadius: 4, background: '#222', color: '#fff', border: '1px solid #444' }}
+          >
+            {Array.from({ length: 11 }, (_, i) => i + 6).map(points => (
+              <option key={points} value={points}>{points} VP</option>
+            ))}
           </select>
         </div>
 

@@ -145,6 +145,7 @@ export type GameState = {
   setupPlayerOrder: number[]; // indices for setup placement
   setupOrderIndex: number;    // current index in setupPlayerOrder
   winner: string | null;      // playerId of winner, null if not finished
+  victoryPointTarget: number; // VP required to win this game
   seed: number;               // RNG seed for reproducibility
   longestRoadLength: number;
   largestArmySize: number;

@@ -14,6 +14,7 @@ describe('gameStore', () => {
       isReplayMode: false,
       timelineIndex: null,
       debugEnabled: true,
+      lastVictoryPointTarget: 10,
     });
   });
 
@@ -32,6 +33,19 @@ describe('gameStore', () => {
     const { gameState } = useGameStore.getState();
     expect(gameState?.expansionRules).toBe('cities_and_knights');
     expect(gameState?.ck).not.toBeNull();
+    expect(gameState?.victoryPointTarget).toBe(13);
+  });
+
+  it('startGame stores custom victory point target and restart preserves it', () => {
+    useGameStore.getState().startGame(['Alice', 'Bob'], [], 'base', 12);
+    let { gameState, lastVictoryPointTarget } = useGameStore.getState();
+    expect(gameState?.victoryPointTarget).toBe(12);
+    expect(lastVictoryPointTarget).toBe(12);
+
+    useGameStore.getState().restartGame();
+    ({ gameState, lastVictoryPointTarget } = useGameStore.getState());
+    expect(gameState?.victoryPointTarget).toBe(12);
+    expect(lastVictoryPointTarget).toBe(12);
   });
 
   it('dispatch updates game state', () => {

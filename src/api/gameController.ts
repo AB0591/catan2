@@ -1,6 +1,7 @@
 import type { GameState, GameAction } from '../state/gameState';
 import type { Vertex, Edge } from '../engine/board/boardTypes';
 import { dispatchAction } from '../engine/turnManager/turnManager';
+import { normalizeVictoryPointTarget } from '../state/gameStateFactory';
 
 /**
  * Serialize full game state to a JSON string.
@@ -55,10 +56,15 @@ export function deserializeState(json: string): GameState {
     progressDecks: { politics: [], science: [], trade: [] },
     lastBarbarianAttack: null,
   };
+  const victoryPointTarget = normalizeVictoryPointTarget(
+    typeof raw.victoryPointTarget === 'number' ? raw.victoryPointTarget : undefined,
+    expansionRules
+  );
 
   return {
     ...raw,
     expansionRules,
+    victoryPointTarget,
     ck: expansionRules === 'cities_and_knights'
       ? {
         ...defaultCk,

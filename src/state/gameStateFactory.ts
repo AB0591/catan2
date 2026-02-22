@@ -101,10 +101,25 @@ function createInitialCkState(playerIds: string[], rng: () => number): CkState {
   };
 }
 
+export function getDefaultVictoryPointTarget(expansionRules: ExpansionRules): number {
+  return expansionRules === 'cities_and_knights' ? 13 : 10;
+}
+
+export function normalizeVictoryPointTarget(
+  value: number | undefined,
+  expansionRules: ExpansionRules
+): number {
+  const fallback = getDefaultVictoryPointTarget(expansionRules);
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+  const rounded = Math.round(value);
+  return Math.min(16, Math.max(6, rounded));
+}
+
 export function createInitialGameState(
   playerConfigs: PlayerConfig[],
   seed: number,
-  expansionRules: ExpansionRules = 'base'
+  expansionRules: ExpansionRules = 'base',
+  victoryPointTarget?: number
 ): GameState {
   const rng = mulberry32(seed);
   const board = createBoard(seed);
@@ -117,6 +132,7 @@ export function createInitialGameState(
   const forward = players.map((_, i) => i);
   const backward = [...forward].reverse();
   const setupPlayerOrder = [...forward, ...backward];
+  const normalizedVictoryPointTarget = normalizeVictoryPointTarget(victoryPointTarget, expansionRules);
 
   return {
     id: `game_${seed}_${Date.now()}`,
@@ -136,6 +152,7 @@ export function createInitialGameState(
     setupPlayerOrder,
     setupOrderIndex: 0,
     winner: null,
+    victoryPointTarget: normalizedVictoryPointTarget,
     seed,
     longestRoadLength: 0,
     largestArmySize: 0,

@@ -20,7 +20,7 @@ export function calculateTotalVP(state: GameState, playerId: string): number {
 
 export function checkVictory(state: GameState): string | null {
   for (const player of state.players) {
-    if (calculateTotalVP(state, player.id) >= 10) {
+    if (calculateTotalVP(state, player.id) >= state.victoryPointTarget) {
       return player.id;
     }
   }

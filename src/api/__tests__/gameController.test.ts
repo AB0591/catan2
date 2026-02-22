@@ -50,6 +50,27 @@ describe('gameController', () => {
     expect(restored.board.graph.edges.size).toBeGreaterThan(0);
   });
 
+  it('deserializeState defaults victory point target for older base saves', () => {
+    const state = makeState();
+    const parsed = JSON.parse(serializeState(state));
+    delete parsed.victoryPointTarget;
+
+    const restored = deserializeState(JSON.stringify(parsed));
+    expect(restored.victoryPointTarget).toBe(10);
+  });
+
+  it('deserializeState defaults victory point target for older C&K saves', () => {
+    const state = createInitialGameState([
+      { id: 'p1', name: 'Alice', color: 'red' },
+      { id: 'p2', name: 'Bob', color: 'blue' },
+    ], 42, 'cities_and_knights');
+    const parsed = JSON.parse(serializeState(state));
+    delete parsed.victoryPointTarget;
+
+    const restored = deserializeState(JSON.stringify(parsed));
+    expect(restored.victoryPointTarget).toBe(13);
+  });
+
   it('deserializeState(serializeState(state)) is deep-equal to original', () => {
     const state = makeState();
     const restored = deserializeState(serializeState(state));
