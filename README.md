@@ -1,6 +1,23 @@
-# Settlers of Catan — Digital Implementation
+# Settlers of Catan (React + TypeScript)
 
-A full-featured digital implementation of Settlers of Catan built with React, TypeScript, and Vite.
+A browser-based Catan implementation built with React, TypeScript, Vite, and Zustand.
+
+It supports both the base game and a substantial **Cities & Knights** ruleset implementation, with a pure TypeScript engine and a React UI layered on top.
+
+## Highlights
+
+- Base Catan gameplay (setup, build, trade, robber, dev cards, victory)
+- Cities & Knights gameplay systems:
+  - city improvements and commodities
+  - knights (build / activate / move / promote / drive robber)
+  - city walls
+  - barbarians + barbarian attack resolution
+  - progress cards and C&K-specific UI flows
+- 2-4 players with per-seat AI toggles
+- Configurable victory target in lobby (`6-16`)
+  - defaults: Base `10`, C&K `13`
+- Replay timeline + state replay from action log
+- Debug console and scenario import/export tooling (dev/debug builds)
 
 ## Getting Started
 
@@ -9,95 +26,57 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open `http://localhost:5173`.
 
-## How to Start a Game
+## Starting a Game
 
-1. Choose 2–4 players (name each player)
-2. Check "AI" to make a player computer-controlled
-3. Click **Start Game**
-4. Follow on-screen instructions for setup and play
+1. Choose `2-4` players and names
+2. Mark any seats as `AI`
+3. Select ruleset (`Base Catan` or `Cities & Knights`)
+4. Select `Victory Points to Win` (`6-16`)
+5. Click `Start Game`
 
-## Running Tests
-
-```bash
-npm test
-```
-
-146 tests covering the full game engine.
-
-## Building for Production
+## Scripts
 
 ```bash
-npm run build
+npm run dev        # start Vite dev server
+npm run build      # typecheck + production build
+npm run lint       # ESLint
+npm test           # run Vitest suite
+npm run test:watch # watch mode
+npm run preview    # preview production build
 ```
 
-## Architecture
+## Project Structure
 
-The codebase is organized into three main layers:
+- `src/engine/`: pure game logic (rules, actions, AI, victory, C&K modules)
+- `src/state/`: state types and game-state factory
+- `src/ui/`: React UI components (board, dialogs, overlays, menus)
+- `src/store/`: Zustand store + UI/engine orchestration
+- `src/api/`: serialization, replay, validation, dispatcher middleware
+- `src/debug/`: debug console commands + scenario tooling
+- `Documentation/`: implementation notes, plans, and feature docs
 
-### Engine (`src/engine/`)
+## Core Engine Modules
 
-Pure TypeScript game logic — no React dependencies.
+- `src/engine/turnManager/`: central action dispatcher
+- `src/engine/actions/`: base build actions
+- `src/engine/resources/`: dice distribution + commodity generation
+- `src/engine/robber/`: robber, discard, steal logic
+- `src/engine/developmentCards/`: base dev card actions
+- `src/engine/trading/`: bank/port/player trading
+- `src/engine/victory/`: VP calculation + win checks
+- `src/engine/citiesAndKnights/`: C&K systems (knights, walls, barbarians, progress cards, metropolises)
+- `src/engine/ai/`: heuristic AI action selection
 
-| Module | Description |
-|--------|-------------|
-| `board/` | Hex grid, vertex/edge graph, board setup |
-| `rules/` | Placement rules (settlements, roads, cities) |
-| `resources/` | Resource distribution on dice roll |
-| `actions/` | Build actions (settlement, road, city, dev card) |
-| `robber/` | Robber mechanics (7, discard, steal) |
-| `developmentCards/` | Knight, YoP, Monopoly, Road Building |
-| `victory/` | Victory point calculation, longest road, largest army |
-| `trading/` | Bank trades (4:1, 3:1, 2:1 ports), player trades |
-| `ai/` | Heuristic AI player |
-| `turnManager/` | Central action dispatcher |
+## Testing
 
-### State (`src/state/`)
+The project uses `Vitest` with unit/integration coverage across engine, UI components, store behavior, and serialization/validation.
 
-Game state types and factories.
+Current suite size: `222` tests.
 
-| File | Description |
-|------|-------------|
-| `gameState.ts` | `GameState`, `GameAction`, `TurnPhase` types |
-| `boardState.ts` | `BoardState`, `Port` types |
-| `playerState.ts` | `PlayerState`, resources, dev cards |
-| `gameStateFactory.ts` | `createInitialGameState` |
+## Specs and Docs
 
-### UI (`src/ui/`)
-
-React components for game rendering.
-
-| Component | Description |
-|-----------|-------------|
-| `boardRenderer/HexBoard` | SVG board with hexes, settlements, roads |
-| `playerPanel/PlayerPanel` | Player info sidebar |
-| `diceRoll/DiceRoll` | Dice display and roll button |
-| `buildMenu/BuildMenu` | Build buttons with cost display |
-| `devCardHand/DevCardHand` | Dev card list with play buttons |
-| `tradeDialog/TradeDialog` | Bank and player trade dialog |
-| `discardDialog/DiscardDialog` | Discard UI for 7-roll |
-
-### API (`src/api/`)
-
-Serialization and multiplayer sync primitives.
-
-| File | Description |
-|------|-------------|
-| `gameController.ts` | `serializeState`, `deserializeState`, `replayFromLog`, `validateAction` |
-| `actionDispatcher.ts` | Middleware-based dispatcher, logging/validation middlewares |
-
-### Store (`src/store/`)
-
-Zustand store connecting UI to engine.
-
-## Documentation
-
-Detailed step-by-step implementation docs in [`Documentation/`](./Documentation/):
-
-- [Step 10: UI Board Renderer](./Documentation/step10-ui-board-renderer.md)
-- [Step 11: Player Controls](./Documentation/step11-player-controls.md)
-- [Step 12: Trading System](./Documentation/step12-trading.md)
-- [Step 13: AI Opponents](./Documentation/step13-ai-opponents.md)
-- [Step 14: Multiplayer Sync](./Documentation/step14-multiplayer-sync.md)
-
+- `CATAN_SPEC.md`
+- `CITIES_AND_KNIGHTS_SPEC.md`
+- `Documentation/` for implementation notes, UX changes, and feature plans
