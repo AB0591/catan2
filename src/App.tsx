@@ -13,6 +13,8 @@ import { TradeDialog } from './ui/tradeDialog';
 import { ActionTimeline } from './ui/timeline/ActionTimeline';
 import { Coachmark } from './ui/onboarding/Coachmark';
 import { ResourceGainOverlay } from './ui/resourceGainOverlay/ResourceGainOverlay';
+import { CkProgressDialog } from './ui/ckProgressDialog';
+import { CkBarbarianModal } from './ui/ckBarbarianModal';
 import {
   getBuildDisabledReason,
   getDevCardPlayReason,
@@ -21,7 +23,7 @@ import {
 } from './ui/reasons/actionReasons';
 import type { VertexId, EdgeId } from './engine/board/boardTypes';
 import type { HexCoord } from './engine/board/hexGrid';
-import type { ResourceType, ImprovementTrack } from './state/playerState';
+import type { CommodityType, ResourceType, ImprovementTrack } from './state/playerState';
 import type { DistributionCards, ExpansionRules, ProgressCard } from './state/gameState';
 import {
   getDriveAwayRobberTargets,
@@ -35,6 +37,14 @@ const PLAYER_CSS_COLORS: Record<string, string> = {
   blue: '#3b82f6',
   orange: '#f97316',
   white: '#e5e7eb',
+};
+
+type ProgressDeckKey = 'politics' | 'science' | 'trade';
+
+const PROGRESS_DECK_META: Record<ProgressDeckKey, { label: string; accent: string }> = {
+  politics: { label: 'Politics', accent: '#60a5fa' },
+  science: { label: 'Science', accent: '#4ade80' },
+  trade: { label: 'Trade', accent: '#facc15' },
 };
 
 function nextTimestamp(): number {
@@ -203,6 +213,9 @@ function GameBoard() {
   const [selectedKnightId, setSelectedKnightId] = useState<string | null>(null);
   const [knightMode, setKnightMode] = useState<'none' | 'build' | 'move' | 'driveRobber'>('none');
   const [ckBuildCityWallMode, setCkBuildCityWallMode] = useState(false);
+  const [progressDialogCard, setProgressDialogCard] = useState<ProgressCard | null>(null);
+  const [dismissedBarbarianSignature, setDismissedBarbarianSignature] = useState<string | null>(null);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
   const [debugInput, setDebugInput] = useState('');
   const [scenarioName, setScenarioName] = useState('');
@@ -223,6 +236,99 @@ function GameBoard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [debugEnabled]);
 
+  useEffect(() => {
+    if (!gameState || !currentPlayer || isReplayMode) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName.toLowerCase();
+      const inTextInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select' || Boolean(target?.isContentEditable);
+      if (inTextInput) return;
+
+      if (event.key === '?') {
+        event.preventDefault();
+        setShowShortcutHelp(prev => !prev);
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSelectedAction(null);
+        setKnightMode('none');
+        setPendingKnightCardIndex(null);
+        setCkBuildCityWallMode(false);
+        setProgressDialogCard(null);
+        return;
+      }
+
+      if (progressDialogCard) return;
+
+      const isCurrentPlayer = gameState.players[gameState.currentPlayerIndex]?.id === currentPlayer.id;
+      if (!isCurrentPlayer || gameState.phase !== 'playing') return;
+
+      if ((event.key === 'r' || event.key === 'R') && gameState.turnPhase === 'preRoll') {
+        event.preventDefault();
+        const die1 = rollDie();
+        const die2 = rollDie();
+        dispatch({
+          type: 'ROLL_DICE',
+          playerId: currentPlayer.id,
+          payload: { die1, die2 },
+          timestamp: nextTimestamp(),
+        });
+        return;
+      }
+
+      if ((event.key === 'e' || event.key === 'E') && gameState.turnPhase === 'postRoll') {
+        event.preventDefault();
+        dispatch({
+          type: 'END_TURN',
+          playerId: currentPlayer.id,
+          payload: {},
+          timestamp: nextTimestamp(),
+        });
+        setSelectedAction(null);
+        setKnightMode('none');
+        setPendingKnightCardIndex(null);
+        setCkBuildCityWallMode(false);
+        setProgressDialogCard(null);
+        return;
+      }
+
+      if (gameState.turnPhase !== 'postRoll') return;
+
+      if (event.key === '1') {
+        event.preventDefault();
+        setSelectedAction(selectedAction === 'settlement' ? null : 'settlement');
+        setKnightMode('none');
+        setCkBuildCityWallMode(false);
+      } else if (event.key === '2') {
+        event.preventDefault();
+        setSelectedAction(selectedAction === 'road' ? null : 'road');
+        setKnightMode('none');
+        setCkBuildCityWallMode(false);
+      } else if (event.key === '3') {
+        event.preventDefault();
+        setSelectedAction(selectedAction === 'city' ? null : 'city');
+        setKnightMode('none');
+        setCkBuildCityWallMode(false);
+      } else if ((event.key === 'k' || event.key === 'K') && gameState.expansionRules === 'cities_and_knights') {
+        event.preventDefault();
+        setKnightMode(prev => (prev === 'build' ? 'none' : 'build'));
+        setSelectedAction(null);
+        setCkBuildCityWallMode(false);
+      } else if ((event.key === 'w' || event.key === 'W') && gameState.expansionRules === 'cities_and_knights') {
+        event.preventDefault();
+        setCkBuildCityWallMode(prev => !prev);
+        setSelectedAction(null);
+        setKnightMode('none');
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [gameState, currentPlayer, isReplayMode, progressDialogCard, dispatch, selectedAction, setSelectedAction]);
+
   if (!gameState) return null;
 
   const ownedKnights = currentPlayer
@@ -240,6 +346,21 @@ function GameBoard() {
       ? (gameState.ck.progressHands[currentPlayer.id] ?? [])
       : []
   );
+  const progressHandCounts: Record<string, number> = gameState.expansionRules === 'cities_and_knights' && gameState.ck
+    ? Object.fromEntries(gameState.players.map(player => [player.id, gameState.ck?.progressHands[player.id]?.length ?? 0]))
+    : {};
+  const progressByDeck: Record<ProgressDeckKey, ProgressCard[]> = {
+    politics: progressHand.filter(card => card.deck === 'politics'),
+    science: progressHand.filter(card => card.deck === 'science'),
+    trade: progressHand.filter(card => card.deck === 'trade'),
+  };
+  const lastBarbarianAttack = gameState.expansionRules === 'cities_and_knights' && gameState.ck
+    ? gameState.ck.lastBarbarianAttack
+    : null;
+  const barbarianSignature = lastBarbarianAttack
+    ? `${gameState.currentTurn}:${lastBarbarianAttack.cityStrength}:${lastBarbarianAttack.defenseStrength}:${lastBarbarianAttack.losers.join(',')}:${lastBarbarianAttack.rewarded.join(',')}:${lastBarbarianAttack.citiesDowngraded.map(item => `${item.playerId}@${item.vertexId}`).join('|')}`
+    : null;
+  const showBarbarianModal = !isReplayMode && barbarianSignature !== null && barbarianSignature !== dismissedBarbarianSignature;
   const metropolisByVertex: Record<string, 'politics' | 'science' | 'trade'> = {};
   if (gameState.expansionRules === 'cities_and_knights' && gameState.ck) {
     (['politics', 'science', 'trade'] as const).forEach(track => {
@@ -467,6 +588,7 @@ function GameBoard() {
     setSelectedKnightId(null);
     setKnightMode('none');
     setCkBuildCityWallMode(false);
+    setProgressDialogCard(null);
   };
 
   const validHexes: HexCoord[] = (() => {
@@ -613,32 +735,43 @@ function GameBoard() {
     return null;
   };
 
+  const progressCardDisabledReason = (() => {
+    if (!currentPlayer) return 'No active player.';
+    if (isReplayMode) return 'Replay mode active. Return to live play to use progress cards.';
+    if (gameState.expansionRules !== 'cities_and_knights' || !gameState.ck) return 'Only available in Cities & Knights.';
+    if (gameState.phase !== 'playing' || gameState.turnPhase !== 'postRoll') return 'Only available in post-roll phase.';
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== currentPlayer.id) return 'Not your turn.';
+    return null;
+  })();
+
+  const canPlayProgressCards = progressCardDisabledReason === null;
+
   const playProgressCard = (card: ProgressCard) => {
     if (!currentPlayer) return;
-    const payload: Record<string, unknown> = { cardId: card.id };
-    if (card.type === 'resourceMonopoly' || card.type === 'merchantFleet') {
-      const selection = window.prompt('Choose resource: wood, brick, sheep, wheat, ore', 'wood');
-      if (!selection) return;
-      payload.resource = selection;
+    if (card.type === 'resourceMonopoly' || card.type === 'merchantFleet' || card.type === 'tradeMonopoly' || card.type === 'spy') {
+      setProgressDialogCard(card);
+      return;
     }
-    if (card.type === 'tradeMonopoly') {
-      const selection = window.prompt('Choose commodity: cloth, coin, paper', 'cloth');
-      if (!selection) return;
-      payload.commodity = selection;
-    }
-    if (card.type === 'spy') {
-      const opponents = gameState.players.filter(p => p.id !== currentPlayer.id);
-      if (opponents.length > 0) {
-        payload.targetPlayerId = opponents[0].id;
-      }
-    }
-
     dispatch({
       type: 'CK_PLAY_PROGRESS_CARD',
       playerId: currentPlayer.id,
-      payload,
+      payload: { cardId: card.id },
       timestamp: nextTimestamp(),
     });
+  };
+
+  const handleProgressDialogConfirm = (params: { resource?: ResourceType; commodity?: CommodityType; targetPlayerId?: string }) => {
+    if (!currentPlayer || !progressDialogCard) return;
+    dispatch({
+      type: 'CK_PLAY_PROGRESS_CARD',
+      playerId: currentPlayer.id,
+      payload: {
+        cardId: progressDialogCard.id,
+        ...params,
+      },
+      timestamp: nextTimestamp(),
+    });
+    setProgressDialogCard(null);
   };
 
   const activeCoachmark = (() => {
@@ -744,7 +877,12 @@ function GameBoard() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
         {/* Fixed-height notification area — reserved space so the board never moves */}
         <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%', paddingBottom: 4 }}>
-          <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 16px', borderRadius: 20, marginBottom: 6, fontSize: 13, color: '#ffd700' }}>
+          <div
+            style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 16px', borderRadius: 20, marginBottom: 6, fontSize: 13, color: '#ffd700' }}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {currentPlayer && <span style={{ color: playerColors[currentPlayer.id] }}>{currentPlayer.name}</span>}
             {' — '}{phaseLabel}
           </div>
@@ -852,6 +990,42 @@ function GameBoard() {
             🤖 AI is thinking…
           </div>
         )}
+        <div style={{ marginBottom: 8, border: '1px solid #334155', borderRadius: 6, background: 'rgba(15,23,42,0.6)' }}>
+          <button
+            onClick={() => setShowShortcutHelp(prev => !prev)}
+            aria-expanded={showShortcutHelp}
+            aria-controls="shortcut-help-panel"
+            style={{
+              width: '100%',
+              border: 'none',
+              borderRadius: 6,
+              background: 'transparent',
+              color: '#cbd5e1',
+              cursor: 'pointer',
+              padding: '6px 8px',
+              textAlign: 'left',
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+            title="Toggle keyboard shortcut help"
+          >
+            ⌨️ Shortcuts {showShortcutHelp ? '▲' : '▼'} (?)
+          </button>
+          {showShortcutHelp && (
+            <div
+              id="shortcut-help-panel"
+              style={{ borderTop: '1px solid #334155', padding: '6px 8px', fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}
+            >
+              <div><strong>?</strong> toggle this panel</div>
+              <div><strong>Esc</strong> clear active build/mode</div>
+              <div><strong>R</strong> roll dice (pre-roll)</div>
+              <div><strong>E</strong> end turn (post-roll)</div>
+              <div><strong>1 / 2 / 3</strong> settlement / road / city</div>
+              <div><strong>K</strong> knight build mode (C&amp;K)</div>
+              <div><strong>W</strong> city wall mode (C&amp;K)</div>
+            </div>
+          )}
+        </div>
         {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
           <div style={{ marginBottom: 8, padding: 8, borderRadius: 6, background: 'rgba(59,130,246,0.12)', border: '1px solid #3b82f6' }}>
             <div style={{ fontSize: 11, color: '#93c5fd', marginBottom: 4 }}>
@@ -1246,28 +1420,44 @@ function GameBoard() {
                 {progressHand.length === 0 && (
                   <div style={{ fontSize: 10, color: '#888' }}>No progress cards in hand.</div>
                 )}
-                {progressHand.map(card => (
-                  <button
-                    key={card.id}
-                    onClick={() => playProgressCard(card)}
-                    disabled={gameState.turnPhase !== 'postRoll'}
-                    title={`Play ${card.type} (${card.deck})`}
-                    style={{
-                      width: '100%',
-                      marginBottom: 4,
-                      padding: '4px 6px',
-                      borderRadius: 4,
-                      border: '1px solid #374151',
-                      background: gameState.turnPhase === 'postRoll' ? '#111827' : '#1f2937',
-                      color: gameState.turnPhase === 'postRoll' ? '#dbeafe' : '#6b7280',
-                      fontSize: 11,
-                      textAlign: 'left',
-                      cursor: gameState.turnPhase === 'postRoll' ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    {card.deck.slice(0, 3).toUpperCase()} · {card.type}
-                  </button>
-                ))}
+                {(['politics', 'science', 'trade'] as const).map(deck => {
+                  const cards = progressByDeck[deck];
+                  if (cards.length === 0) return null;
+                  const meta = PROGRESS_DECK_META[deck];
+                  return (
+                    <div key={deck} style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, color: meta.accent, fontWeight: 700, marginBottom: 3 }}>
+                        {meta.label} ({cards.length})
+                      </div>
+                      {cards.map(card => (
+                        <button
+                          key={card.id}
+                          onClick={() => playProgressCard(card)}
+                          disabled={!canPlayProgressCards}
+                          title={progressCardDisabledReason ?? `Play ${card.type} (${card.deck})`}
+                          style={{
+                            width: '100%',
+                            marginBottom: 4,
+                            padding: '4px 6px',
+                            borderRadius: 4,
+                            border: `1px solid ${meta.accent}`,
+                            background: canPlayProgressCards ? '#0f172a' : '#1f2937',
+                            color: canPlayProgressCards ? '#e2e8f0' : '#6b7280',
+                            fontSize: 11,
+                            textAlign: 'left',
+                            cursor: canPlayProgressCards ? 'pointer' : 'not-allowed',
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {card.type}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+                {!canPlayProgressCards && progressCardDisabledReason && (
+                  <div style={{ fontSize: 10, color: '#888' }}>{progressCardDisabledReason}</div>
+                )}
               </div>
             )}
 
@@ -1467,6 +1657,25 @@ function GameBoard() {
           });
           setShowTrade(false);
         }}
+      />
+    )}
+
+    {progressDialogCard && currentPlayer && !isReplayMode && (
+      <CkProgressDialog
+        card={progressDialogCard}
+        players={gameState.players}
+        currentPlayerId={currentPlayer.id}
+        progressHandCounts={progressHandCounts}
+        onCancel={() => setProgressDialogCard(null)}
+        onConfirm={handleProgressDialogConfirm}
+      />
+    )}
+
+    {showBarbarianModal && lastBarbarianAttack && (
+      <CkBarbarianModal
+        summary={lastBarbarianAttack}
+        players={gameState.players}
+        onClose={() => setDismissedBarbarianSignature(barbarianSignature ?? null)}
       />
     )}
 
