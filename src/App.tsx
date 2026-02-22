@@ -1153,6 +1153,36 @@ function GameBoard() {
 
             {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
               <div style={{ paddingBottom: 8, borderBottom: '1px solid #333', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>C&amp;K Build</div>
+                <button
+                  onClick={() => {
+                    setKnightMode(prev => (prev === 'build' ? 'none' : 'build'));
+                    setSelectedAction(null);
+                    setPendingKnightCardIndex(null);
+                    setCkBuildCityWallMode(false);
+                  }}
+                  disabled={getBuildKnightDisabledReason() !== null}
+                  title={getBuildKnightDisabledReason() ?? 'Build knight (1 sheep + 1 ore)'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    cursor: getBuildKnightDisabledReason() === null ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    background: getBuildKnightDisabledReason() === null ? '#1f4a3d' : '#333',
+                    color: getBuildKnightDisabledReason() === null ? '#eafff7' : '#777',
+                  }}
+                >
+                  🛡️ Build Knight
+                </button>
+              </div>
+            )}
+
+            {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
+              <div style={{ paddingBottom: 8, borderBottom: '1px solid #333', marginBottom: 8 }}>
                 <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>City Improvements</div>
                 {(['politics', 'science', 'trade'] as const).map(track => {
                   const info = improvementMeta[track];
@@ -1231,31 +1261,6 @@ function GameBoard() {
             {gameState.expansionRules === 'cities_and_knights' && gameState.ck && (
               <div style={{ paddingBottom: 8, borderBottom: '1px solid #333', marginBottom: 8 }}>
                 <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>Knights</div>
-                <button
-                  onClick={() => {
-                    setKnightMode(prev => (prev === 'build' ? 'none' : 'build'));
-                    setSelectedAction(null);
-                    setPendingKnightCardIndex(null);
-                    setCkBuildCityWallMode(false);
-                  }}
-                  disabled={getBuildKnightDisabledReason() !== null}
-                  title={getBuildKnightDisabledReason() ?? 'Build knight (1 sheep + 1 ore)'}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    borderRadius: 5,
-                    border: 'none',
-                    fontSize: 12,
-                    fontWeight: 'bold',
-                    cursor: getBuildKnightDisabledReason() === null ? 'pointer' : 'not-allowed',
-                    textAlign: 'left',
-                    background: getBuildKnightDisabledReason() === null ? '#1f4a3d' : '#333',
-                    color: getBuildKnightDisabledReason() === null ? '#eafff7' : '#777',
-                    marginBottom: 6,
-                  }}
-                >
-                  🛡️ Build Knight
-                </button>
                 {selectedKnight && (
                   <div style={{ fontSize: 10, color: '#a5b4fc', marginBottom: 6 }}>
                     Selected {selectedKnight.id} · Lv {selectedKnight.level} · {selectedKnight.active ? 'Active' : 'Inactive'}{selectedKnight.hasActedThisTurn ? ' · Acted' : ''}
