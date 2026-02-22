@@ -34,9 +34,9 @@ export const DiceRoll: React.FC<DiceRollProps> = ({ lastRoll, canRoll, disabledR
         disabled={!canRoll}
         title={!canRoll ? (disabledReason ?? 'Roll is currently unavailable.') : 'Roll dice'}
         style={{
-          background: canRoll ? '#3b82f6' : '#2a3342',
-          color: canRoll ? '#fff' : '#7f8a9c',
-          border: 'none',
+          background: canRoll ? '#16a34a' : '#2a3342',
+          color: canRoll ? '#f0fdf4' : '#7f8a9c',
+          border: canRoll ? '1px solid #22c55e' : '1px solid #374151',
           borderRadius: 6,
           padding: '8px 20px',
           fontSize: 14,
