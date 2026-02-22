@@ -644,7 +644,10 @@ function GameBoard() {
     settlement: getBuildDisabledReason('settlement', gameState, currentPlayer, isReplayMode) ?? undefined,
     road: getBuildDisabledReason('road', gameState, currentPlayer, isReplayMode) ?? undefined,
     city: getBuildDisabledReason('city', gameState, currentPlayer, isReplayMode) ?? undefined,
-    devCard: getBuildDisabledReason('devCard', gameState, currentPlayer, isReplayMode) ?? undefined,
+    devCard:
+      gameState.expansionRules === 'cities_and_knights'
+        ? 'Development cards are disabled in Cities & Knights.'
+        : (getBuildDisabledReason('devCard', gameState, currentPlayer, isReplayMode) ?? undefined),
   } : {};
 
   const improvementMeta: Record<ImprovementTrack, { label: string; icon: string; commodity: string }> = {

@@ -54,7 +54,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
   const canSettlement = canBuild && canAfford(player.resources, COSTS.settlement) && player.settlements > 0;
   const canRoad = canBuild && canAfford(player.resources, COSTS.road) && player.roads > 0;
   const canCity = canBuild && canAfford(player.resources, COSTS.city) && player.cities > 0;
-  const canDev = canBuild && canAfford(player.resources, COSTS.devCard);
+  const canDev = canBuild && canAfford(player.resources, COSTS.devCard) && !disabledReasons.devCard;
 
   return (
     <div style={{ padding: '8px 0' }}>
