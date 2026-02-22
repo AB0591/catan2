@@ -13,7 +13,7 @@ import {
 } from '../engine/rules/placementRules';
 import { runAITurn, getAIAction } from '../engine/ai/aiPlayer';
 import { deserializeState, replayFromLog } from '../api/gameController';
-import { executeDebugCommand, parseDebugCommand } from '../debug/commands';
+import { executeDebugCommand, parseDebugCommand, validateDebugCommandForState } from '../debug/commands';
 import {
   loadSavedScenarios,
   makeScenarioSnapshot,
@@ -330,6 +330,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const parsed = parseDebugCommand(input);
     if (!parsed.ok) return { ok: false, message: parsed.message };
+    const validationError = validateDebugCommandForState(liveGameState, parsed.command);
+    if (validationError) return { ok: false, message: validationError };
 
     const result = executeDebugCommand(liveGameState, parsed.command);
     if (!result.ok) return { ok: false, message: result.message };

@@ -31,6 +31,7 @@ import {
   getValidKnightMoveTargets,
 } from './engine/citiesAndKnights/knightActions';
 import { getValidCityWallVertices } from './engine/citiesAndKnights/cityWallActions';
+import { getAvailableDebugCommandGroups } from './debug/commands';
 
 const PLAYER_CSS_COLORS: Record<string, string> = {
   red: '#ef4444',
@@ -219,6 +220,9 @@ function GameBoard() {
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
   const [debugInput, setDebugInput] = useState('');
+  const [debugHistory, setDebugHistory] = useState<string[]>([]);
+  const [debugHistoryIndex, setDebugHistoryIndex] = useState<number | null>(null);
+  const [debugDraftInput, setDebugDraftInput] = useState('');
   const [scenarioName, setScenarioName] = useState('');
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
 
@@ -333,6 +337,7 @@ function GameBoard() {
   }, [gameState, currentPlayer, isReplayMode, progressDialogCard, dispatch, selectedAction, setSelectedAction, isCurrentPlayerAI, isAIThinking]);
 
   if (!gameState) return null;
+  const availableDebugCommandGroups = getAvailableDebugCommandGroups(gameState);
 
   const ownedKnights = currentPlayer
     ? Object.values(gameState.board.knights).filter(k => k.ownerId === currentPlayer.id)
@@ -386,8 +391,12 @@ function GameBoard() {
   }
 
   const handleDebugSubmit = () => {
-    if (!debugInput.trim()) return;
-    const result = runDebugCommand(debugInput);
+    const submitted = debugInput.trim();
+    if (!submitted) return;
+    setDebugHistory(prev => (prev[prev.length - 1] === submitted ? prev : [...prev, submitted]));
+    setDebugHistoryIndex(null);
+    setDebugDraftInput('');
+    const result = runDebugCommand(submitted);
     setDebugMessage(result.message);
     if (result.ok) setDebugInput('');
   };
@@ -1714,9 +1723,43 @@ function GameBoard() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
           <input
             value={debugInput}
-            onChange={e => setDebugInput(e.target.value)}
+            onChange={e => {
+              const value = e.target.value;
+              setDebugInput(value);
+              if (debugHistoryIndex === null) setDebugDraftInput(value);
+            }}
             onKeyDown={e => {
-              if (e.key === 'Enter') handleDebugSubmit();
+              if (e.key === 'Enter') {
+                handleDebugSubmit();
+                return;
+              }
+              if (e.key === 'ArrowUp') {
+                if (debugHistory.length === 0) return;
+                e.preventDefault();
+                if (debugHistoryIndex === null) {
+                  setDebugDraftInput(debugInput);
+                  const nextIndex = debugHistory.length - 1;
+                  setDebugHistoryIndex(nextIndex);
+                  setDebugInput(debugHistory[nextIndex] ?? '');
+                  return;
+                }
+                const nextIndex = Math.max(0, debugHistoryIndex - 1);
+                setDebugHistoryIndex(nextIndex);
+                setDebugInput(debugHistory[nextIndex] ?? '');
+                return;
+              }
+              if (e.key === 'ArrowDown') {
+                if (debugHistory.length === 0 || debugHistoryIndex === null) return;
+                e.preventDefault();
+                const nextIndex = debugHistoryIndex + 1;
+                if (nextIndex >= debugHistory.length) {
+                  setDebugHistoryIndex(null);
+                  setDebugInput(debugDraftInput);
+                  return;
+                }
+                setDebugHistoryIndex(nextIndex);
+                setDebugInput(debugHistory[nextIndex] ?? '');
+              }
             }}
             placeholder="give player_0 wood 3"
             style={{
@@ -1737,15 +1780,25 @@ function GameBoard() {
           </button>
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-          <button onClick={() => { setDebugInput('preset robber-test'); }} style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, border: '1px solid #444', background: '#111827', color: '#cbd5e1', cursor: 'pointer' }}>Robber test</button>
-          <button onClick={() => { setDebugInput('preset trade-test'); }} style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, border: '1px solid #444', background: '#111827', color: '#cbd5e1', cursor: 'pointer' }}>Trade test</button>
-          <button onClick={() => { setDebugInput('preset endgame-test'); }} style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, border: '1px solid #444', background: '#111827', color: '#cbd5e1', cursor: 'pointer' }}>Endgame test</button>
+          <button onClick={() => { setDebugInput('preset robber-test'); setDebugHistoryIndex(null); setDebugDraftInput('preset robber-test'); }} style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, border: '1px solid #444', background: '#111827', color: '#cbd5e1', cursor: 'pointer' }}>Robber test</button>
+          <button onClick={() => { setDebugInput('preset trade-test'); setDebugHistoryIndex(null); setDebugDraftInput('preset trade-test'); }} style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, border: '1px solid #444', background: '#111827', color: '#cbd5e1', cursor: 'pointer' }}>Trade test</button>
+          <button onClick={() => { setDebugInput('preset endgame-test'); setDebugHistoryIndex(null); setDebugDraftInput('preset endgame-test'); }} style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, border: '1px solid #444', background: '#111827', color: '#cbd5e1', cursor: 'pointer' }}>Endgame test</button>
         </div>
         {(debugMessage ?? lastDebugMessage) && (
           <div style={{ fontSize: 11, color: '#a7f3d0', marginBottom: 4 }}>{debugMessage ?? lastDebugMessage}</div>
         )}
         <div style={{ fontSize: 10, color: '#94a3b8' }}>
-          Commands: <code>give</code>, <code>setvp</code>, <code>roll</code>, <code>devcard</code>, <code>nextphase</code>, <code>preset</code>
+          {availableDebugCommandGroups.map(group => (
+            <div key={group.label}>
+              <strong>{group.label}:</strong>{' '}
+              {group.commands.map((command, index) => (
+                <span key={command}>
+                  {index > 0 && ', '}
+                  <code>{command}</code>
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     )}
