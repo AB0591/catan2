@@ -990,6 +990,72 @@ function GameBoard() {
             🤖 AI is thinking…
           </div>
         )}
+        <div
+          style={{
+            marginBottom: 8,
+            border: '1px solid #334155',
+            borderRadius: 8,
+            background: 'rgba(15,23,42,0.75)',
+            padding: 8,
+            position: 'sticky',
+            top: 10,
+            zIndex: 20,
+          }}
+        >
+          <div style={{ fontSize: 11, color: '#cbd5e1', fontWeight: 700, marginBottom: 4 }}>
+            Turn Actions
+          </div>
+          <DiceRoll
+            lastRoll={gameState.lastDiceRoll}
+            canRoll={canRoll}
+            disabledReason={rollDisabledReason}
+            onRoll={handleRoll}
+          />
+          <button
+            onClick={() => {
+              if (!tradeDisabledReason) setShowTrade(true);
+            }}
+            disabled={tradeDisabledReason !== null}
+            title={tradeDisabledReason ?? 'Open trade dialog'}
+            style={{
+              width: '100%',
+              padding: '8px 0',
+              background: tradeDisabledReason ? '#0f3b38' : '#0f766e',
+              color: tradeDisabledReason ? '#7ea4a2' : '#fff',
+              border: '1px solid #0d9488',
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: tradeDisabledReason ? 'not-allowed' : 'pointer',
+              marginTop: 6,
+            }}
+          >
+            🔄 Trade
+          </button>
+          {tradeDisabledReason && (
+            <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>{tradeDisabledReason}</div>
+          )}
+          <button
+            onClick={handleEndTurn}
+            disabled={!canEndTurn}
+            title={endTurnDisabledReason ?? 'End your turn'}
+            style={{
+              width: '100%',
+              padding: '8px 0',
+              background: canEndTurn ? '#374151' : '#222a37',
+              color: canEndTurn ? '#fff' : '#7f8a9c',
+              border: '1px solid #555',
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: canEndTurn ? 'pointer' : 'not-allowed',
+              marginTop: 6,
+            }}
+          >
+            End Turn →
+          </button>
+          {!canEndTurn && endTurnDisabledReason && (
+            <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>{endTurnDisabledReason}</div>
+          )}
+        </div>
         <div style={{ marginBottom: 8, border: '1px solid #334155', borderRadius: 6, background: 'rgba(15,23,42,0.6)' }}>
           <button
             onClick={() => setShowShortcutHelp(prev => !prev)}
@@ -1038,13 +1104,6 @@ function GameBoard() {
             )}
           </div>
         )}
-        <DiceRoll
-          lastRoll={gameState.lastDiceRoll}
-          canRoll={canRoll}
-          disabledReason={rollDisabledReason}
-          onRoll={handleRoll}
-        />
-
         {gameState.phase === 'playing' && currentPlayer && (
           <>
             <BuildMenu
@@ -1355,55 +1414,6 @@ function GameBoard() {
                   ✕
                 </button>
               </div>
-            )}
-
-            {gameState.turnPhase === 'postRoll' && (
-              <>
-                <button
-                  onClick={() => {
-                    if (!tradeDisabledReason) setShowTrade(true);
-                  }}
-                  disabled={tradeDisabledReason !== null}
-                  title={tradeDisabledReason ?? 'Open trade dialog'}
-                  style={{
-                    width: '100%',
-                    padding: '8px 0',
-                    background: tradeDisabledReason ? '#0f3b38' : '#0f766e',
-                    color: tradeDisabledReason ? '#7ea4a2' : '#fff',
-                    border: '1px solid #0d9488',
-                    borderRadius: 6,
-                    fontSize: 13,
-                    cursor: tradeDisabledReason ? 'not-allowed' : 'pointer',
-                    marginTop: 6,
-                  }}
-                >
-                  🔄 Trade
-                </button>
-                {tradeDisabledReason && (
-                  <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>{tradeDisabledReason}</div>
-                )}
-                <button
-                  onClick={handleEndTurn}
-                  disabled={!canEndTurn}
-                  title={endTurnDisabledReason ?? 'End your turn'}
-                  style={{
-                    width: '100%',
-                    padding: '8px 0',
-                    background: canEndTurn ? '#374151' : '#222a37',
-                    color: canEndTurn ? '#fff' : '#7f8a9c',
-                    border: '1px solid #555',
-                    borderRadius: 6,
-                    fontSize: 13,
-                    cursor: canEndTurn ? 'pointer' : 'not-allowed',
-                    marginTop: 6,
-                  }}
-                >
-                  End Turn →
-                </button>
-                {!canEndTurn && endTurnDisabledReason && (
-                  <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>{endTurnDisabledReason}</div>
-                )}
-              </>
             )}
 
             {gameState.turnPhase === 'discarding' && gameState.pendingDiscards.length > 0 && (
