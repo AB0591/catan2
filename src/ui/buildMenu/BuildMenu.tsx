@@ -10,6 +10,8 @@ export type BuildMenuProps = {
   onBuildRoad: () => void;
   onBuildCity: () => void;
   onBuyDevCard: () => void;
+  onBuildKnight?: () => void;
+  buildKnightDisabledReason?: string | null;
   disabledReasons?: Partial<Record<'settlement' | 'road' | 'city' | 'devCard', string>>;
 };
 
@@ -44,6 +46,8 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
   onBuildRoad,
   onBuildCity,
   onBuyDevCard,
+  onBuildKnight,
+  buildKnightDisabledReason = null,
   disabledReasons = {},
 }) => {
   const canBuild = turnPhase === 'postRoll';
@@ -90,6 +94,26 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       </button>
       {!canCity && disabledReasons.city && (
         <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{disabledReasons.city}</div>
+      )}
+      {onBuildKnight && (
+        <>
+          <button
+            onClick={onBuildKnight}
+            disabled={buildKnightDisabledReason !== null}
+            title={buildKnightDisabledReason ?? 'Build knight (1 sheep + 1 ore)'}
+            style={{
+              ...BTN_STYLE,
+              background: buildKnightDisabledReason === null ? '#1f4a3d' : '#333',
+              color: buildKnightDisabledReason === null ? '#fff' : '#666',
+            }}
+          >
+            🛡️ Knight
+            <span style={{ fontSize: 10, display: 'block', fontWeight: 'normal' }}>🐑⛰️</span>
+          </button>
+          {buildKnightDisabledReason && (
+            <div style={{ fontSize: 10, color: '#888', marginTop: -4, marginBottom: 6 }}>{buildKnightDisabledReason}</div>
+          )}
+        </>
       )}
       <button
         onClick={onBuyDevCard}
