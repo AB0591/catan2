@@ -180,6 +180,7 @@ function GameBoard() {
   const {
     gameState,
     liveGameState,
+    aiPlayerIds,
     dispatch,
     selectedAction,
     setSelectedAction,
@@ -222,6 +223,7 @@ function GameBoard() {
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
 
   const currentPlayer = getCurrentPlayer();
+  const isCurrentPlayerAI = currentPlayer ? aiPlayerIds.includes(currentPlayer.id) : false;
   const { vertices: baseValidVertices, edges: validEdges } = getValidPlacements();
 
   useEffect(() => {
@@ -265,6 +267,7 @@ function GameBoard() {
 
       const isCurrentPlayer = gameState.players[gameState.currentPlayerIndex]?.id === currentPlayer.id;
       if (!isCurrentPlayer || gameState.phase !== 'playing') return;
+      if (isCurrentPlayerAI || isAIThinking) return;
 
       if ((event.key === 'r' || event.key === 'R') && gameState.turnPhase === 'preRoll') {
         event.preventDefault();
@@ -327,7 +330,7 @@ function GameBoard() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [gameState, currentPlayer, isReplayMode, progressDialogCard, dispatch, selectedAction, setSelectedAction]);
+  }, [gameState, currentPlayer, isReplayMode, progressDialogCard, dispatch, selectedAction, setSelectedAction, isCurrentPlayerAI, isAIThinking]);
 
   if (!gameState) return null;
 
@@ -577,6 +580,7 @@ function GameBoard() {
   const handleEndTurn = () => {
     if (!currentPlayer) return;
     if (isReplayMode) return;
+    if (isCurrentPlayerAI || isAIThinking) return;
     dispatch({
       type: 'END_TURN',
       playerId: currentPlayer.id,
@@ -616,7 +620,10 @@ function GameBoard() {
 
   const rollDisabledReason = getRollDisabledReason(gameState, currentPlayer?.id, isReplayMode);
   const canRoll = rollDisabledReason === null;
-  const endTurnDisabledReason = getEndTurnDisabledReason(gameState, currentPlayer?.id, isReplayMode);
+  const endTurnDisabledReason =
+    isCurrentPlayerAI || isAIThinking
+      ? 'AI player turn in progress.'
+      : getEndTurnDisabledReason(gameState, currentPlayer?.id, isReplayMode);
   const canEndTurn = endTurnDisabledReason === null;
   const tradeDisabledReason =
     isReplayMode
